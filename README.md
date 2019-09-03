@@ -6,7 +6,7 @@ The device information is loaded from the local Nuki Bridge, therefore you just 
 
 The Nuki Opener is exposed as a lock in Homekit with support for:
 - Lock/Unlock
-- Notification when the bell rings
+- Notification when the bell rings (not yet supported by Bridge)
 
 Optionally, the following switches are exposed:
 - Ring-to-open (on/off)
