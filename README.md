@@ -32,7 +32,7 @@ npm install homebridge-nuki -g
             "hostNameOrIpAddress": "<HOST-IP-OR-NAME>",
             "hostCallbackApiPort": 40506,
             "bridgeIpAddress": "<BRIDGE-IP-ADDRESS>",
-            "bridgeApiPort": "<BRIDGE-HTTP-API-PORT>",
+            "bridgeApiPort": 80,
             "bridgeApiToken": "<BRIDGE-API-TOKEN>",
             "devices": [
                 {
