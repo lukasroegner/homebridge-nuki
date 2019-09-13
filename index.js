@@ -56,7 +56,7 @@ function NukiPlatform(log, config, api) {
   platform.config.bridgeApiPort = platform.config.bridgeApiPort || 8080;
   platform.config.bridgeApiToken = platform.config.bridgeApiToken || null;
   platform.config.devices = platform.config.devices || [];
-  platform.config.supportedDeviceTypes = [2];
+  platform.config.supportedDeviceTypes = [0, 2];
 
   // Checks whether the API object is available
   if (!api) {
@@ -93,11 +93,11 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
   const platform = this;
 
   // Checks if all required information is provided
-  if (platform.config.bridgeIpAddress) {
+  if (!platform.config.bridgeIpAddress) {
     platform.log('No bridge IP address provided.');
     return callback(false);
   }
-  if (platform.config.bridgeApiToken) {
+  if (!platform.config.bridgeApiToken) {
     platform.log('No API token for the bridge provided.');
     return callback(false);
   }
@@ -138,6 +138,14 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
         continue;
       }
 
+      // Prints out the device information
+      if (body[i].deviceType == 0) {
+        platform.log('Device with Nuki ID ' + body[i].nukiId + ' and name ' + body[i].name + ' is a SmartLock.');
+      }
+      if (body[i].deviceType == 2) {
+        platform.log('Device with Nuki ID ' + body[i].nukiId + ' and name ' + body[i].name + ' is an Opener.');
+      }
+
       // Gets the corresponding device configuration
       let config = null;
       for (let j = 0; j < platform.config.devices.length; j++) {
@@ -152,6 +160,9 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
       }
       
       // Creates the device instance and adds it to the list of all devices
+      if (body[i].deviceType == 0) {
+        platform.devices.push(new NukiSmartLockDevice(platform, body[i], config));
+      }
       if (body[i].deviceType == 2) {
         platform.devices.push(new NukiOpenerDevice(platform, body[i], config));
       }
@@ -196,11 +207,11 @@ NukiPlatform.prototype.startCallbackServer = function (callback) {
   const platform = this;
 
   // Checks if all required information is provided
-  if (platform.config.hostNameOrIpAddress) {
+  if (!platform.config.hostNameOrIpAddress) {
     platform.log('No host name or IP address provided.');
     return callback(false);
   }
-  if (platform.config.hostCallbackApiPort) {
+  if (!platform.config.hostCallbackApiPort) {
     platform.log('No API port for callback (host) provided.');
     return callback(false);
   }
@@ -233,7 +244,7 @@ NukiPlatform.prototype.startCallbackServer = function (callback) {
         }
 
         // Sends a response to the Bridge API
-          platform.log('Callback received.');
+        platform.log('Callback received.');
         response.statusCode = 200;
         response.end();
 
@@ -249,10 +260,10 @@ NukiPlatform.prototype.startCallbackServer = function (callback) {
     // Returns a positive result
     platform.log('Callback server started.');
     return callback(true);
-  } catch {
+  } catch(e) {
 
     // Returns a negative result
-    platform.log('Callback server could not be started.');
+    platform.log('Callback server could not be started: ' + JSON.stringify(e));
     return callback(false);
   }
 }
@@ -265,11 +276,11 @@ NukiPlatform.prototype.registerCallback = function (callback) {
   const platform = this;
 
   // Checks if all required information is provided
-  if (platform.config.hostNameOrIpAddress) {
+  if (!platform.config.hostNameOrIpAddress) {
     platform.log('No host name or IP address provided.');
     return callback(false);
   }
-  if (platform.config.hostCallbackApiPort) {
+  if (!platform.config.hostCallbackApiPort) {
     platform.log('No API port for callback (host) provided.');
     return callback(false);
   }
@@ -355,8 +366,9 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   const device = this;
   const { UUIDGen, Accessory, Characteristic, Service } = platform;
 
-  // Sets the nuki ID
+  // Sets the nuki ID and platform
   device.nukiId = config.nukiId;
+  device.platform = platform;
 
   // Gets all accessories from the platform that match the Nuki ID
   let unusedDeviceAccessories = [];
@@ -381,7 +393,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   // Creates a new one if it has not been cached
   if (!lockAccessory) {
     platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind LockAccessory.');
-    lockAccessory = new Accessory(name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
+    lockAccessory = new Accessory(apiConfig.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
     lockAccessory.context.nukiId = config.nukiId;
     lockAccessory.context.kind = 'LockAccessory';
     newDeviceAccessories.push(lockAccessory);
@@ -402,7 +414,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     // Creates a new one if it has not been cached
     if (!switchAccessory) {
       platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind SwitchAccessory.');
-      switchAccessory = new Accessory(name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
+      switchAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
       switchAccessory.context.nukiId = config.nukiId;
       switchAccessory.context.kind = 'SwitchAccessory';
       newDeviceAccessories.push(switchAccessory);
@@ -429,7 +441,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     accessoryInformationService
       .setCharacteristic(Characteristic.Manufacturer, 'Nuki')
       .setCharacteristic(Characteristic.Model, 'Opener')
-      .setCharacteristic(Characteristic.SerialNumber, 'Nuki ID ' + config.nukiId);
+      .setCharacteristic(Characteristic.SerialNumber, config.nukiId);
   }
 
   // Updates the lock
@@ -484,7 +496,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
       // Executes the action
       platform.log(config.nukiId + ' - Unlock');
       request({
-        uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + 'deviceType=2&action=3&token=' + platform.config.bridgeApiToken,
+        uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=3&token=' + platform.config.bridgeApiToken,
         method: 'GET',
         json: true,
         rejectUnauthorized: false
@@ -500,7 +512,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
         // Executes the action
         platform.log(config.nukiId + ' - Set RTO to ' + value);
         request({
-          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + 'deviceType=2&action=' + (value ? '1' : '2') + '&token=' + platform.config.bridgeApiToken,
+          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=' + (value ? '1' : '2') + '&token=' + platform.config.bridgeApiToken,
           method: 'GET',
           json: true,
           rejectUnauthorized: false
@@ -517,7 +529,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
         // Executes the action
         platform.log(config.nukiId + ' - Set Continuous Mode to ' + value);
         request({
-          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + 'deviceType=2&action=' + (value ? '4' : '5') + '&token=' + platform.config.bridgeApiToken,
+          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=' + (value ? '4' : '5') + '&token=' + platform.config.bridgeApiToken,
           method: 'GET',
           json: true,
           rejectUnauthorized: false
@@ -525,6 +537,9 @@ function NukiOpenerDevice(platform, apiConfig, config) {
         callback(null);
       });
   }
+
+  // Updates the state initially
+  device.update(apiConfig.lastKnownState);
 }
 
 /**
@@ -537,28 +552,28 @@ NukiOpenerDevice.prototype.update = function(state) {
   
   // Sets the lock state
   if (state.state == 1 || state.state == 3) {
-    platform.log(device.nukiId + ' - Updating lock state: SECURED/SECURED');
+    device.platform.log(device.nukiId + ' - Updating lock state: SECURED/SECURED');
     device.lockService
       .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
     device.lockService
       .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
   }
   if (state.state == 5) {
-    platform.log(device.nukiId + ' - Updating lock state: UNSECURED/UNSECURED');
+    device.platform.log(device.nukiId + ' - Updating lock state: UNSECURED/UNSECURED');
     device.lockService
       .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
       device.lockService
         .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
   }
   if (state.state == 7) {
-    platform.log(device.nukiId + ' - Updating lock state: -/UNSECURED');
+    device.platform.log(device.nukiId + ' - Updating lock state: -/UNSECURED');
     device.lockService
       .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
   }
 
   // Sets the status for the continuous mode
   if (device.continuousModeSwitchService) {
-    platform.log(device.nukiId + ' - Updating Continuous Mode: ' + state.mode);
+    device.platform.log(device.nukiId + ' - Updating Continuous Mode: ' + state.mode);
     device.continuousModeSwitchService
       .updateCharacteristic(Characteristic.On, state.mode == 3);
   }
@@ -566,9 +581,151 @@ NukiOpenerDevice.prototype.update = function(state) {
   // Sets the status for RTO
   if (device.ringToOpenSwitchService) {
     if (state.state == 1 || state.state == 3) {
-      platform.log(device.nukiId + ' - Updating Continuous Mode: ' + state.state);
+      device.platform.log(device.nukiId + ' - Updating Continuous Mode: ' + state.state);
       device.ringToOpenSwitchService
         .updateCharacteristic(Characteristic.On, state.state == 3);
     }
+  }
+}
+
+/**
+ * Represents a physical Nuki SmartLock device.
+ * @param platform The NukiPlatform instance.
+ * @param apiConfig The device information provided by the Nuki Bridge API.
+ * @param config The device configuration.
+ */
+function NukiSmartLockDevice(platform, apiConfig, config) {
+  const device = this;
+  const { UUIDGen, Accessory, Characteristic, Service } = platform;
+
+  // Sets the nuki ID and platform
+  device.nukiId = config.nukiId;
+  device.platform = platform;
+
+  // Gets all accessories from the platform that match the Nuki ID
+  let unusedDeviceAccessories = [];
+  let newDeviceAccessories = [];
+  let deviceAccessories = [];
+  for (let i = 0; i < platform.accessories.length; i++) {
+    if (platform.accessories[i].context.nukiId === config.nukiId) {
+      unusedDeviceAccessories.push(platform.accessories[i]);
+    }
+  }
+
+  // Gets the lock accessory
+  let lockAccessory = null; 
+  for (let i = 0; i < unusedDeviceAccessories.length; i++) {
+    if (unusedDeviceAccessories[i].context.kind === 'LockAccessory') {
+      lockAccessory = unusedDeviceAccessories[i];
+      unusedDeviceAccessories.splice(i, 1);
+      break;
+    }
+  }
+
+  // Creates a new one if it has not been cached
+  if (!lockAccessory) {
+    platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind LockAccessory.');
+    lockAccessory = new Accessory(apiConfig.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
+    lockAccessory.context.nukiId = config.nukiId;
+    lockAccessory.context.kind = 'LockAccessory';
+    newDeviceAccessories.push(lockAccessory);
+  }
+  deviceAccessories.push(lockAccessory);
+
+  // Registers the newly created accessories
+  platform.api.registerPlatformAccessories(platform.pluginName, platform.platformName, newDeviceAccessories);
+
+  // Removes all unused accessories
+  for (let i = 0; i < unusedDeviceAccessories.length; i++) {
+    platform.log('Removing unused accessory with Nuki ID ' + config.nukiId + ' and kind ' + unusedDeviceAccessories[i].context.kind + '.');
+    platform.accessories.splice(platform.accessories.indexOf(unusedDeviceAccessories[i]), 1);
+  }
+  platform.api.unregisterPlatformAccessories(platform.pluginName, platform.platformName, unusedDeviceAccessories);
+
+  // Updates the accessory information
+  for (let i = 0; i < deviceAccessories.length; i++) {
+    let accessoryInformationService = deviceAccessories[i].getService(Service.AccessoryInformation);
+    if (!accessoryInformationService) {
+      accessoryInformationService = deviceAccessories[i].addService(Service.AccessoryInformation);
+    }
+    accessoryInformationService
+      .setCharacteristic(Characteristic.Manufacturer, 'Nuki')
+      .setCharacteristic(Characteristic.Model, 'SmartLock')
+      .setCharacteristic(Characteristic.SerialNumber, config.nukiId);
+  }
+
+  // Updates the lock
+  let lockService = lockAccessory.getService(Service.LockMechanism);
+  if (!lockService) {
+    lockService = lockAccessory.addService(Service.LockMechanism);
+  }
+  lockService
+    .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
+    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+
+  // Stores the lock service
+  device.lockService = lockService;
+
+  // Subscribes for changes of the target state characteristic
+  lockService
+    .getCharacteristic(Characteristic.LockTargetState).on('set', function (value, callback) {
+
+      // Checks if the operation is unsecured
+      if (value === Characteristic.LockTargetState.UNSECURED) {
+        platform.log(config.nukiId + ' - Unlock');
+        request({
+          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&action=1&token=' + platform.config.bridgeApiToken,
+          method: 'GET',
+          json: true,
+          rejectUnauthorized: false
+        });
+      }
+
+      // Checks if the operation is secured
+      if (value === Characteristic.LockTargetState.SECURED) {
+        platform.log(config.nukiId + ' - Lock');
+        request({
+          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&action=2&token=' + platform.config.bridgeApiToken,
+          method: 'GET',
+          json: true,
+          rejectUnauthorized: false
+        });
+      }
+
+      // Performs the callback
+      callback(null);
+    });
+
+    // Updates the state initially
+    device.update(apiConfig.lastKnownState);
+}
+
+/**
+ * Can be called to update the device information based on the new state.
+ * @param state The lock state from the API.
+ */
+NukiSmartLockDevice.prototype.update = function(state) {
+  const device = this;
+  const { Characteristic } = device.platform;
+  
+  // Sets the lock state
+  if (state.state == 1) {
+    device.platform.log(device.nukiId + ' - Updating lock state: SECURED/SECURED');
+    device.lockService
+      .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+    device.lockService
+      .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+  }
+  if (state.state == 3 || state.state == 5) {
+    device.platform.log(device.nukiId + ' - Updating lock state: UNSECURED/UNSECURED');
+    device.lockService
+      .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+    device.lockService
+      .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+  }
+  if (state.state == 254) {
+    device.platform.log(device.nukiId + ' - Updating lock state: JAMMED/-');
+    device.lockService
+      .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.JAMMED);
   }
 }

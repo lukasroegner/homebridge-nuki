@@ -1,8 +1,11 @@
 # homebridge-nuki
 
-This project is a homebridge plugin for Nuki devices. Initially, the plugin will only support the Nuki Opener.
+This project is a homebridge plugin for Nuki devices.
 
 The device information is loaded from the local Nuki Bridge, therefore you just have to specify an API token for communication with the Nuki Bridge.
+
+The Nuki SmartLock is exposed as a lock in Homekit with support for:
+- Lock/Unlock
 
 The Nuki Opener is exposed as a lock in Homekit with support for:
 - Lock/Unlock
@@ -31,8 +34,11 @@ You have to enable the HTTP API on the Nuki Bridge:
 * After the bridge management interface is loaded, click on the bridge icon and enable the switch for "HTTP API"
 * The IP address, port and API token are shown (you need them for the configuration of the plugin)
 * Go back and click on the device icon that you want to use with the plugin
-* The "Smartlock ID" of the device is shown (you need it for the configuration of the plugin, called `nukiId` in the configuration)
 * Repeat this step for each device you want to use with the plugin
+
+## Find Nuki IDs of the devices
+
+Start homebridge with the plugin installed, however, do not provide any devices in the `devices` array. The plugin will print out all devices with their type and corresponding `nukiId`.
 
 ## Configuration
 
@@ -48,7 +54,7 @@ You have to enable the HTTP API on the Nuki Bridge:
             "bridgeApiToken": "<BRIDGE-API-TOKEN>",
             "devices": [
                 {
-                    "nukiId": "<DEVICE-ID>",
+                    "nukiId": <DEVICE-ID>,
                     "isRingToOpenEnabled": false,
                     "isContinuousModeEnabled": false
                 }
@@ -70,8 +76,8 @@ You have to enable the HTTP API on the Nuki Bridge:
 
 **devices**: Array of all your Nuki devices that the plugin should expose.
 
-**nukiId**: The ID of the device.
+**nukiId**: The ID of the device (provide as number, not as string).
 
-**isRingToOpenEnabled**: If set to true, a switch is exposed for the ring-to-open function.
+**isRingToOpenEnabled**: If set to true, a switch is exposed for the ring-to-open function. (only for Opener)
 
-**isContinuousModeEnabled**: If set to true, a switch is exposed for the continuous mode.
+**isContinuousModeEnabled**: If set to true, a switch is exposed for the continuous mode. (only for Opener)
