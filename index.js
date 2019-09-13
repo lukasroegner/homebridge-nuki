@@ -53,7 +53,7 @@ function NukiPlatform(log, config, api) {
   platform.config.hostNameOrIpAddress = platform.config.hostNameOrIpAddress || null;
   platform.config.hostCallbackApiPort = platform.config.hostCallbackApiPort || 40506;
   platform.config.bridgeIpAddress = platform.config.bridgeIpAddress || null;
-  platform.config.bridgeApiPort = platform.config.bridgeApiPort || 80;
+  platform.config.bridgeApiPort = platform.config.bridgeApiPort || 8080;
   platform.config.bridgeApiToken = platform.config.bridgeApiToken || null;
   platform.config.devices = platform.config.devices || [];
   platform.config.supportedDeviceTypes = [2];

@@ -22,6 +22,18 @@ Install the plugin via npm:
 npm install homebridge-nuki -g
 ```
 
+## Prepare Bridge
+
+You have to enable the HTTP API on the Nuki Bridge:
+* Open the Nuki app
+* Open the menu and go to "Manage my devices" and choose the Bridge
+* Click on "Manage bridge" and follow the instructions (press the button on the bridge for at least 10 seconds)
+* After the bridge management interface is loaded, click on the bridge icon and enable the switch for "HTTP API"
+* The IP address, port and API token are shown (you need them for the configuration of the plugin)
+* Go back and click on the device icon that you want to use with the plugin
+* The "Smartlock ID" of the device is shown (you need it for the configuration of the plugin, called `nukiId` in the configuration)
+* Repeat this step for each device you want to use with the plugin
+
 ## Configuration
 
 ```json
@@ -32,11 +44,11 @@ npm install homebridge-nuki -g
             "hostNameOrIpAddress": "<HOST-IP-OR-NAME>",
             "hostCallbackApiPort": 40506,
             "bridgeIpAddress": "<BRIDGE-IP-ADDRESS>",
-            "bridgeApiPort": 80,
+            "bridgeApiPort": 8080,
             "bridgeApiToken": "<BRIDGE-API-TOKEN>",
             "devices": [
                 {
-                    "nukiId": <DEVICE-ID>,
+                    "nukiId": "<DEVICE-ID>",
                     "isRingToOpenEnabled": false,
                     "isContinuousModeEnabled": false
                 }
@@ -52,13 +64,13 @@ npm install homebridge-nuki -g
 
 **bridgeIpAddress**: The IP address of your Nuki Bridge.
 
-**bridgeApiPort** (optional): The port on which the API runs on your Nuki Bridge. Defaults to `80`, please change this setting if you use a different port on the Nuki Bridge for the API.
+**bridgeApiPort** (optional): The port on which the API runs on your Nuki Bridge. Defaults to `8080`, please change this setting if you use a different port on the Nuki Bridge for the API.
 
 **bridgeApiToken**: The token for communication with the Bridge API. Can be configured in the Nuki App.
 
 **devices**: Array of all your Nuki devices that the plugin should expose.
 
-**nukiId**: The ID of the device (set as number, not as string).
+**nukiId**: The ID of the device.
 
 **isRingToOpenEnabled**: If set to true, a switch is exposed for the ring-to-open function.
 
