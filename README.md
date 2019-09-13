@@ -58,7 +58,7 @@ npm install homebridge-nuki -g
 
 **devices**: Array of all your Nuki devices that the plugin should expose.
 
-**nukiId**: The ID of the device.
+**nukiId**: The ID of the device (set as number, not as string).
 
 **isRingToOpenEnabled**: If set to true, a switch is exposed for the ring-to-open function.
 

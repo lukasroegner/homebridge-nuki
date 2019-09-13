@@ -492,7 +492,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
       callback(null);
     });
 
-  // Subscribes for changes of the night mode
+  // Subscribes for changes of the RTO mode
   if (ringToOpenSwitchService) {
     ringToOpenSwitchService
       .getCharacteristic(Characteristic.On).on('set', function (value, callback) {
@@ -509,9 +509,9 @@ function NukiOpenerDevice(platform, apiConfig, config) {
       });
   }
 
-  // Subscribes for changes of the jet focus
-  if (jetFocusSwitchService) {
-    jetFocusSwitchService
+  // Subscribes for changes of the continuous mode
+  if (continuousModeSwitchService) {
+    continuousModeSwitchService
       .getCharacteristic(Characteristic.On).on('set', function (value, callback) {
 
         // Executes the action
