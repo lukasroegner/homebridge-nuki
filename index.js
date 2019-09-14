@@ -534,7 +534,7 @@ NukiOpenerDevice.prototype.update = function(state) {
   // Sets the status for RTO
   if (device.ringToOpenSwitchService) {
     if (state.state == 1 || state.state == 3) {
-      device.platform.log(device.nukiId + ' - Updating Continuous Mode: ' + state.state);
+      device.platform.log(device.nukiId + ' - Updating RTO: ' + state.state);
       device.ringToOpenSwitchService
         .updateCharacteristic(Characteristic.On, state.state == 3);
     }
