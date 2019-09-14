@@ -57,6 +57,11 @@ function NukiPlatform(log, config, api) {
   platform.config.bridgeApiToken = platform.config.bridgeApiToken || null;
   platform.config.devices = platform.config.devices || [];
   platform.config.supportedDeviceTypes = [0, 2];
+  platform.config.requestBuffer = 3000;
+  platform.config.requestRetryCount = 3;
+
+  // Initializes the client
+  platform.client = new NukiBridgeClient(platform);
 
   // Checks whether the API object is available
   if (!api) {
@@ -92,33 +97,11 @@ function NukiPlatform(log, config, api) {
 NukiPlatform.prototype.getDevicesFromApi = function (callback) {
   const platform = this;
 
-  // Checks if all required information is provided
-  if (!platform.config.bridgeIpAddress) {
-    platform.log('No bridge IP address provided.');
-    return callback(false);
-  }
-  if (!platform.config.bridgeApiToken) {
-    platform.log('No API token for the bridge provided.');
-    return callback(false);
-  }
-
   // Sends a request to the API to get all devices
-  request({
-    uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/list?token=' + platform.config.bridgeApiToken,
-    method: 'GET',
-    json: true,
-    rejectUnauthorized: false
-  }, function (error, response, body) {
+  platform.client.send('/list', function (success, body) {
 
-    // Checks if the API returned a positive result
-    if (error || response.statusCode != 200 || !body) {
-      if (error) {
-        platform.log('Error while retrieving the devices from the API. Error: ' + error);
-      } else if (response.statusCode != 200) {
-        platform.log('Error while retrieving the devices from the API. Status Code: ' + response.statusCode);
-      } else if (!body) {
-        platform.log('Error while retrieving the devices from the API. Could not get devices from response: ' + JSON.stringify(body));
-      }
+    // Checks the result
+    if (!success) {
       return callback(false);
     }
 
@@ -286,22 +269,10 @@ NukiPlatform.prototype.registerCallback = function (callback) {
   }
 
   // Sends a request to the API to get all callback URIs
-  request({
-    uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/callback/list?token=' + platform.config.bridgeApiToken,
-    method: 'GET',
-    json: true,
-    rejectUnauthorized: false
-  }, function (error, response, body) {
+  platform.client.send('/callback/list', function (success, body) {
 
-    // Checks if the API returned a positive result
-    if (error || response.statusCode != 200 || !body) {
-      if (error) {
-        platform.log('Error while retrieving the callback list from the API. Error: ' + error);
-      } else if (response.statusCode != 200) {
-        platform.log('Error while retrieving the callback list from the API. Status Code: ' + response.statusCode);
-      } else if (!body) {
-        platform.log('Error while retrieving the callback list from the API. Could not get callback list from response: ' + JSON.stringify(body));
-      }
+    // Checks the result
+    if (!success) {
       return callback(false);
     }
 
@@ -309,7 +280,7 @@ NukiPlatform.prototype.registerCallback = function (callback) {
     let isRegistered = false;
     if (body.callbacks) {
       for (let i = 0; i < body.callbacks.length; i++) {
-        if (body.callbacks[i] === 'http://' + platform.config.hostNameOrIpAddress + ':' + platform.config.hostCallbackApiPort) {
+        if (body.callbacks[i].url === 'http://' + platform.config.hostNameOrIpAddress + ':' + platform.config.hostCallbackApiPort) {
           isRegistered = true;
           break;
         }
@@ -321,20 +292,10 @@ NukiPlatform.prototype.registerCallback = function (callback) {
     }
 
     // Adds the callback to the Bridge API
-    request({
-      uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/callback/add?url=' + encodeURI('http://' + platform.config.hostNameOrIpAddress + ':' + platform.config.hostCallbackApiPort) + '&token=' + platform.config.bridgeApiToken,
-      method: 'GET',
-      json: true,
-      rejectUnauthorized: false
-    }, function (error, response) {
-  
-      // Checks if the API returned a positive result
-      if (error || response.statusCode != 200) {
-        if (error) {
-          platform.log('Error while adding the callback to the API. Error: ' + error);
-        } else if (response.statusCode != 200) {
-          platform.log('Error while adding the callback to the API. Status Code: ' + response.statusCode);
-        }
+    platform.client.send('/callback/add?url=' + encodeURI('http://' + platform.config.hostNameOrIpAddress + ':' + platform.config.hostCallbackApiPort), function (innerSuccess) {
+
+      // Checks the result
+      if (!innerSuccess) {
         return callback(false);
       }
 
@@ -495,11 +456,13 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
       // Executes the action
       platform.log(config.nukiId + ' - Unlock');
-      request({
-        uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=3&token=' + platform.config.bridgeApiToken,
-        method: 'GET',
-        json: true,
-        rejectUnauthorized: false
+      platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=3', function(actionSuccess, actionBody) {
+        if (actionSuccess && actionBody.success) {
+          device.lockService
+            .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+          device.lockService
+            .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+        }
       });
       callback(null);
     });
@@ -511,12 +474,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
         // Executes the action
         platform.log(config.nukiId + ' - Set RTO to ' + value);
-        request({
-          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=' + (value ? '1' : '2') + '&token=' + platform.config.bridgeApiToken,
-          method: 'GET',
-          json: true,
-          rejectUnauthorized: false
-        });
+        platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=' + (value ? '1' : '2'), function() {});
         callback(null);
       });
   }
@@ -528,12 +486,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
         // Executes the action
         platform.log(config.nukiId + ' - Set Continuous Mode to ' + value);
-        request({
-          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=' + (value ? '4' : '5') + '&token=' + platform.config.bridgeApiToken,
-          method: 'GET',
-          json: true,
-          rejectUnauthorized: false
-        });
+        platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=2&action=' + (value ? '4' : '5'), function() {});
         callback(null);
       });
   }
@@ -673,22 +626,26 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
       // Checks if the operation is unsecured
       if (value === Characteristic.LockTargetState.UNSECURED) {
         platform.log(config.nukiId + ' - Unlock');
-        request({
-          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&action=1&token=' + platform.config.bridgeApiToken,
-          method: 'GET',
-          json: true,
-          rejectUnauthorized: false
+        platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=1', function(actionSuccess, actionBody) {
+          if (actionSuccess && actionBody.success) {
+            device.lockService
+              .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+            device.lockService
+              .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+          }
         });
       }
 
       // Checks if the operation is secured
       if (value === Characteristic.LockTargetState.SECURED) {
         platform.log(config.nukiId + ' - Lock');
-        request({
-          uri: 'http://' + platform.config.bridgeIpAddress + ':' + platform.config.bridgeApiPort + '/lockAction?nukiId=' + config.nukiId + '&action=2&token=' + platform.config.bridgeApiToken,
-          method: 'GET',
-          json: true,
-          rejectUnauthorized: false
+        platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=2', function(actionSuccess, actionBody) {
+          if (actionSuccess && actionBody.success) {
+            device.lockService
+              .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+            device.lockService
+              .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+          }
         });
       }
 
@@ -727,5 +684,133 @@ NukiSmartLockDevice.prototype.update = function(state) {
     device.platform.log(device.nukiId + ' - Updating lock state: JAMMED/-');
     device.lockService
       .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.JAMMED);
+  }
+}
+
+/**
+ * Represents the client for communicating with the Nuki Bridge.
+ * @param platform The NukiPlatform instance.
+ */
+function NukiBridgeClient(platform) {
+  const client = this;
+
+  // Sets the platform for further use
+  client.platform = platform;
+
+  // Initializes the queue, which is used to perform sequential calls to the Bridge API
+  client.queue = [];
+  client.lastRequestTimestamp = null;
+  client.isExecutingRequest = false;
+}
+
+/**
+ * Sends a request to the Nuki Bridge.
+ * @param uriPath The endpoint of the Bridge that is to be called.
+ * @param callback The callback that contains a result. The result contains a success indicator and the body.
+ */
+NukiBridgeClient.prototype.send = function(uriPath, callback) {
+  const client = this;
+
+  // Adds the request to the queue
+  client.queue.push({ uriPath: uriPath, callback: callback, retryCount: 0 });
+
+  // Starts processing the queue
+  client.process();
+}
+
+/**
+ * Check if the queue contains elements that can be sent to the Bridge API.
+ */
+NukiBridgeClient.prototype.process = function() {
+  const client = this;
+
+  // Checks if the bridge client is currently executing a request
+  if (client.isExecutingRequest) {
+    return;
+  }
+
+  // Checks if the queue has items to process
+  if (client.queue.length === 0) {
+    return;
+  }
+
+  // Checks if the last request has been executed within the request buffer
+  if (client.lastRequestTimestamp && new Date().getTime() - client.lastRequestTimestamp < client.platform.config.requestBuffer) {
+    setTimeout(function() {
+      client.process();
+    }, Math.max(100, client.platform.config.requestBuffer - (new Date().getTime() - client.lastRequestTimestamp)));
+    return;
+  }
+
+  // Starts executing the request
+  client.isExecutingRequest = true;
+
+  // Checks if all required information is provided
+  if (!client.platform.config.bridgeIpAddress) {
+    client.platform.log('No bridge IP address provided.');
+    return;
+  }
+  if (!client.platform.config.bridgeApiToken) {
+    client.platform.log('No API token for the bridge provided.');
+    return;
+  }
+
+  // Sends out the request
+  const item = client.queue[0];
+  try {
+    request({
+      uri: 'http://' + client.platform.config.bridgeIpAddress + ':' + client.platform.config.bridgeApiPort + item.uriPath + (item.uriPath.indexOf('?') == -1 ? '?' : '&') + 'token=' + client.platform.config.bridgeApiToken,
+      method: 'GET',
+      json: true,
+      rejectUnauthorized: false
+    }, function (error, response, body) {
+
+      // Checks if the API returned a positive result
+      if (error || response.statusCode != 200 || !body) {
+        if (error) {
+          client.platform.log('Error while communicating with the Nuki Bridge. Error: ' + error);
+        } else if (response.statusCode != 200) {
+          client.platform.log('Error while communicating with the Nuki Bridge. Status Code: ' + response.statusCode);
+        } else if (!body) {
+          client.platform.log('Error while communicating with the Nuki Bridge. Could not get body from response: ' + JSON.stringify(body));
+        }
+
+        // Checks the retry count
+        item.retryCount = item.retryCount + 1;
+        if (item.retryCount >= client.platform.config.requestRetryCount) {
+          client.queue.shift();
+          item.callback(false);
+        }
+
+        // Stops executing the request
+        client.lastRequestTimestamp = new Date().getTime();
+        client.isExecutingRequest = false;
+        client.process();
+        return;
+      }
+
+      // Executes the callback
+      client.queue.shift();
+      item.callback(true, body);
+
+      // Stops executing the request
+      client.lastRequestTimestamp = new Date().getTime();
+      client.isExecutingRequest = false;
+      client.process();
+    });
+  } catch (e) {
+    client.platform.log('Error while communicating with the Nuki Bridge. Exception: ' + JSON.stringify(e));
+
+    // Checks the retry count
+    item.retryCount = item.retryCount + 1;
+    if (item.retryCount >= client.platform.config.requestRetryCount) {
+      client.queue.shift();
+      item.callback(false);
+    }
+
+    // Stops executing the request
+    client.lastRequestTimestamp = new Date().getTime();
+    client.isExecutingRequest = false;
+    client.process();
   }
 }
