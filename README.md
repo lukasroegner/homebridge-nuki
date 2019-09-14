@@ -11,7 +11,7 @@ The Nuki SmartLock is exposed as a lock in HomeKit with support for:
 
 Optionally, a second switch is shown in the lock that represents the latch.
 
-## Opener
+## Opener (Beta)
 
 The Nuki Opener is exposed as a lock in HomeKit with support for:
 - Unlock
