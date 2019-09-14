@@ -169,7 +169,7 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
 
       // Removes the accessory
       platform.log('Removing accessory with Nuki ID ' + platform.accessories[i].context.nukiId + ' and kind ' + platform.accessories[i].context.kind + '.');
-      accessoriesToRemove.push(accessory);
+      accessoriesToRemove.push(platform.accessories[i]);
       platform.accessories.splice(i, 1);
     }
 
@@ -451,7 +451,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
       // Checks if the operation is unsecured, as the Opener cannot be secured
       if (value !== Characteristic.LockTargetState.UNSECURED) {
-        return;
+        return callback(null);
       }
 
       // Executes the action
@@ -608,9 +608,9 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
   }
 
   // Updates the lock
-  let lockService = lockAccessory.getService(Service.LockMechanism);
+  let lockService = lockAccessory.getServiceByUUIDAndSubType(Service.LockMechanism, 'Lock');
   if (!lockService) {
-    lockService = lockAccessory.addService(Service.LockMechanism);
+    lockService = lockAccessory.addService(Service.LockMechanism, 'Lock', 'Lock');
   }
   lockService
     .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
@@ -619,21 +619,87 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
   // Stores the lock service
   device.lockService = lockService;
 
+  // Updates the unlatch service
+  let unlatchService = lockAccessory.getServiceByUUIDAndSubType(Service.LockMechanism, 'Unlatch');
+  if (config.unlatchLock) {
+    if (!unlatchService) {
+      unlatchService = lockAccessory.addService(Service.LockMechanism, 'Latch', 'Unlatch');
+    }
+    unlatchService
+      .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
+      .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+
+    // Stores the service
+    device.unlatchService = unlatchService;
+  } else {
+    if (unlatchService) {
+      lockAccessory.removeService(unlatchService);
+      unlatchService = null;
+    }
+  }
+
   // Subscribes for changes of the target state characteristic
   lockService
     .getCharacteristic(Characteristic.LockTargetState).on('set', function (value, callback) {
 
       // Checks if the operation is unsecured
       if (value === Characteristic.LockTargetState.UNSECURED) {
-        platform.log(config.nukiId + ' - Unlock');
-        platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=1', function(actionSuccess, actionBody) {
-          if (actionSuccess && actionBody.success) {
-            device.lockService
-              .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
-            device.lockService
-              .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+        if (lockService.getCharacteristic(Characteristic.LockCurrentState).value === Characteristic.LockCurrentState.SECURED) {
+          if (config.unlatchFromLockedToUnlocked) {
+
+            // Sets the target state of the unlatch switch to unsecured, as both should be displayed as open
+            if (unlatchService) {
+              unlatchService
+                .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+            }
+              
+            // Unlatches the door
+            platform.log(config.nukiId + ' - Unlatch');
+            platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=3', function(actionSuccess, actionBody) {
+              if (actionSuccess && actionBody.success) {
+                device.lockService
+                  .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+                device.lockService
+                  .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+              }
+            });
+
+          } else {
+
+            // Unlocks the door
+            platform.log(config.nukiId + ' - Unlock');
+            platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=1', function(actionSuccess, actionBody) {
+              if (actionSuccess && actionBody.success) {
+                device.lockService
+                  .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+                device.lockService
+                  .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+              }
+            });
           }
-        });
+        }
+        if (lockService.getCharacteristic(Characteristic.LockCurrentState).value === Characteristic.LockCurrentState.UNSECURED) {
+          if (config.unlatchFromUnlockedToUnlocked) {
+
+            // Sets the target state of the unlatch switch to unsecured, as both should be displayed as open
+            if (unlatchService) {
+              unlatchService
+                .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+            }
+              
+            // Unlatches the door
+            platform.log(config.nukiId + ' - Unlatch');
+            platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=3', function(actionSuccess, actionBody) {
+              if (actionSuccess && actionBody.success) {
+                device.lockService
+                  .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+                device.lockService
+                  .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+              }
+            });
+
+          }
+        }
       }
 
       // Checks if the operation is secured
@@ -653,8 +719,36 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
       callback(null);
     });
 
-    // Updates the state initially
-    device.update(apiConfig.lastKnownState);
+  // Subscribes for changes of the unlatch lock
+  if (unlatchService) {
+    unlatchService
+      .getCharacteristic(Characteristic.LockTargetState).on('set', function (value, callback) {
+
+        // Checks if the operation is unsecured, as the latch cannot be secured
+        if (value !== Characteristic.LockTargetState.UNSECURED) {
+          return callback(null);
+        }
+
+        // Sets the target state of the lock to unsecured, as both should be displayed as open
+        lockService
+          .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+
+        // Unlatches the lock
+        platform.log(config.nukiId + ' - Unlatch');
+        platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=3', function(actionSuccess, actionBody) {
+          if (actionSuccess && actionBody.success) {
+            unlatchService
+              .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+            unlatchService
+              .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+          }
+        });
+        callback(null);
+      });
+  }
+
+  // Updates the state initially
+  device.update(apiConfig.lastKnownState);
 }
 
 /**
@@ -672,18 +766,49 @@ NukiSmartLockDevice.prototype.update = function(state) {
       .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
     device.lockService
       .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+    if (device.unlatchService) {
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+    }
   }
-  if (state.state == 3 || state.state == 5) {
+  if (state.state == 3) {
     device.platform.log(device.nukiId + ' - Updating lock state: UNSECURED/UNSECURED');
     device.lockService
       .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
     device.lockService
       .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+    if (device.unlatchService) {
+      device.platform.log(device.nukiId + ' - Updating latch state: SECURED/SECURED');
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+    }
+  }
+  if (state.state == 5) {
+    device.platform.log(device.nukiId + ' - Updating lock state: UNSECURED/UNSECURED');
+    device.lockService
+      .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+    device.lockService
+      .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+    if (device.unlatchService) {
+      device.platform.log(device.nukiId + ' - Updating latch state: UNSECURED/UNSECURED');
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.UNSECURED);
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+    }
   }
   if (state.state == 254) {
     device.platform.log(device.nukiId + ' - Updating lock state: JAMMED/-');
     device.lockService
       .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.JAMMED);
+    if (device.unlatchService) {
+      device.unlatchService
+        .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.JAMMED);
+    }
   }
 }
 
