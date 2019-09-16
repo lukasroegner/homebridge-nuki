@@ -329,6 +329,9 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
   // Sets the nuki ID and platform
   device.nukiId = config.nukiId;
+  device.name = config.name || apiConfig.name;
+  device.ringToOpenSwitchName = config.ringToOpenSwitchName || 'Ring to Open';
+  device.continuousModeSwitchName = config.continuousModeSwitchName || 'Continuous Mode'
   device.platform = platform;
 
   // Gets all accessories from the platform that match the Nuki ID
@@ -354,7 +357,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   // Creates a new one if it has not been cached
   if (!lockAccessory) {
     platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind LockAccessory.');
-    lockAccessory = new Accessory(apiConfig.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
+    lockAccessory = new Accessory(device.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
     lockAccessory.context.nukiId = config.nukiId;
     lockAccessory.context.kind = 'LockAccessory';
     newDeviceAccessories.push(lockAccessory);
@@ -375,7 +378,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     // Creates a new one if it has not been cached
     if (!switchAccessory) {
       platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind SwitchAccessory.');
-      switchAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
+      switchAccessory = new Accessory(device.name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
       switchAccessory.context.nukiId = config.nukiId;
       switchAccessory.context.kind = 'SwitchAccessory';
       newDeviceAccessories.push(switchAccessory);
@@ -422,7 +425,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   if (switchAccessory && config.isRingToOpenEnabled) {
     ringToOpenSwitchService = switchAccessory.getServiceByUUIDAndSubType(Service.Switch, 'RingToOpen');
     if (!ringToOpenSwitchService) {
-      ringToOpenSwitchService = switchAccessory.addService(Service.Switch, 'Ring to Open', 'RingToOpen');
+      ringToOpenSwitchService = switchAccessory.addService(Service.Switch, device.ringToOpenSwitchName, 'RingToOpen');
     }
     ringToOpenSwitchService
       .setCharacteristic(Characteristic.On, apiConfig.lastKnownState.state == 3);
@@ -436,7 +439,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   if (switchAccessory && config.isContinuousModeEnabled) {
     continuousModeSwitchService = switchAccessory.getServiceByUUIDAndSubType(Service.Switch, 'ContinuousMode');
     if (!continuousModeSwitchService) {
-      continuousModeSwitchService = switchAccessory.addService(Service.Switch, 'Continuous Mode', 'ContinuousMode');
+      continuousModeSwitchService = switchAccessory.addService(Service.Switch, device.continuousModeSwitchName, 'ContinuousMode');
     }
     continuousModeSwitchService
       .setCharacteristic(Characteristic.On, apiConfig.lastKnownState.mode == 3);
@@ -553,6 +556,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
 
   // Sets the nuki ID and platform
   device.nukiId = config.nukiId;
+  device.name = config.name || apiConfig.name;
   device.platform = platform;
 
   // Gets all accessories from the platform that match the Nuki ID
@@ -578,7 +582,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
   // Creates a new one if it has not been cached
   if (!lockAccessory) {
     platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind LockAccessory.');
-    lockAccessory = new Accessory(apiConfig.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
+    lockAccessory = new Accessory(device.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
     lockAccessory.context.nukiId = config.nukiId;
     lockAccessory.context.kind = 'LockAccessory';
     newDeviceAccessories.push(lockAccessory);
