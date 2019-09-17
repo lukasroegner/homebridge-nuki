@@ -331,7 +331,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   device.nukiId = config.nukiId;
   device.name = config.name || apiConfig.name;
   device.ringToOpenSwitchName = config.ringToOpenSwitchName || 'Ring to Open';
-  device.continuousModeSwitchName = config.continuousModeSwitchName || 'Continuous Mode'
+  device.continuousModeSwitchName = config.continuousModeSwitchName || 'Continuous Mode';
   device.platform = platform;
 
   // Gets all accessories from the platform that match the Nuki ID
