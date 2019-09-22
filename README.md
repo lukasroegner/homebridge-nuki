@@ -8,6 +8,7 @@ The device information is loaded from the local Nuki Bridge, therefore you just 
 
 The Nuki SmartLock is exposed as a lock in HomeKit with support for:
 - Lock/Unlock/Unlatch
+- Status for Low Battery
 
 Optionally, a second switch is shown in the lock that represents the latch.
 
@@ -15,6 +16,7 @@ Optionally, a second switch is shown in the lock that represents the latch.
 
 The Nuki Opener is exposed as a lock in HomeKit with support for:
 - Unlock
+- Status for Low Battery
 
 Optionally, the following switches are exposed:
 - Ring-to-open (on/off)
