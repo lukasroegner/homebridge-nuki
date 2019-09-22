@@ -415,7 +415,8 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   }
   lockService
     .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
-    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED)
+    .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
 
   // Stores the lock service
   device.lockService = lockService;
@@ -542,6 +543,16 @@ NukiOpenerDevice.prototype.update = function(state) {
         .updateCharacteristic(Characteristic.On, state.state == 3);
     }
   }
+
+  // Sets the status of the battery
+  device.platform.log(device.nukiId + ' - Updating critical battery: ' + state.batteryCritical);
+  if (state.batteryCritical) {
+    device.lockService
+      .updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+  } else {
+    device.lockService
+      .updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+  }
 }
 
 /**
@@ -618,7 +629,8 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
   }
   lockService
     .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
-    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED)
+    .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
 
   // Stores the lock service
   device.lockService = lockService;
@@ -813,6 +825,16 @@ NukiSmartLockDevice.prototype.update = function(state) {
       device.unlatchService
         .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.JAMMED);
     }
+  }
+
+  // Sets the status of the battery
+  device.platform.log(device.nukiId + ' - Updating critical battery: ' + state.batteryCritical);
+  if (state.batteryCritical) {
+    device.lockService
+      .updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+  } else {
+    device.lockService
+      .updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
   }
 }
 
