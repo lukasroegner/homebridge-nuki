@@ -4,6 +4,10 @@ This project is a homebridge plugin for Nuki devices.
 
 The device information is loaded from the local Nuki Bridge, therefore you just have to specify an API token for communication with the Nuki Bridge.
 
+## Bridge
+
+The Nuki Bridge is exposed as a switch for rebooting (optional).
+
 ## SmartLock
 
 The Nuki SmartLock is exposed as a lock in HomeKit with support for:
@@ -57,6 +61,7 @@ Start homebridge with the plugin installed, however, do not provide any devices 
             "bridgeIpAddress": "<BRIDGE-IP-ADDRESS>",
             "bridgeApiPort": 8080,
             "bridgeApiToken": "<BRIDGE-API-TOKEN>",
+            "bridgeRebootSwitch": false,
             "devices": [
                 {
                     "nukiId": 0,
@@ -81,6 +86,8 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 **bridgeApiPort** (optional): The port on which the API runs on your Nuki Bridge. Defaults to `8080`, please change this setting if you use a different port on the Nuki Bridge for the API.
 
 **bridgeApiToken**: The token for communication with the Bridge API. Can be configured in the Nuki App.
+
+**bridgeRebootSwitch**: If set to true, the Nuki Bridge is exposed as a switch for rebooting.
 
 **devices**: Array of all your Nuki devices that the plugin should expose.
 
