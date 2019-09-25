@@ -151,6 +151,11 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
       }
     }
 
+    // Checks if the Bridge should be added as device
+    if (platform.config.bridgeRebootSwitch) {
+      platform.devices.push(new NukiBridgeDevice(platform));
+    }
+
     // Removes the accessories that are not bound to a device
     let accessoriesToRemove = [];
     for (let i = 0; i < platform.accessories.length; i++) {
@@ -159,6 +164,10 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
       let deviceExists = false;
       for (let j = 0; j < platform.devices.length; j++) {
         if (platform.devices[j].nukiId === platform.accessories[i].context.nukiId) {
+          deviceExists = true;
+          break;
+        }
+        if (platform.devices[j].bridgeIpAddress === platform.accessories[i].context.bridgeIpAddress) {
           deviceExists = true;
           break;
         }
@@ -410,10 +419,6 @@ function NukiOpenerDevice(platform, apiConfig, config) {
   if (!lockService) {
     lockService = lockAccessory.addService(Service.LockMechanism);
   }
-  lockService
-    .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
-    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED)
-    .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
 
   // Stores the lock service
   device.lockService = lockService;
@@ -425,8 +430,6 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     if (!ringToOpenSwitchService) {
       ringToOpenSwitchService = switchAccessory.addService(Service.Switch, 'Ring to Open', 'RingToOpen');
     }
-    ringToOpenSwitchService
-      .setCharacteristic(Characteristic.On, apiConfig.lastKnownState.state == 3);
 
     // Stores the service
     device.ringToOpenSwitchService = ringToOpenSwitchService;
@@ -439,8 +442,6 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     if (!continuousModeSwitchService) {
       continuousModeSwitchService = switchAccessory.addService(Service.Switch, 'Continuous Mode', 'ContinuousMode');
     }
-    continuousModeSwitchService
-      .setCharacteristic(Characteristic.On, apiConfig.lastKnownState.mode == 3);
 
     // Stores the service
     device.continuousModeSwitchService = continuousModeSwitchService;
@@ -623,10 +624,6 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
   if (!lockService) {
     lockService = lockAccessory.addService(Service.LockMechanism, 'Lock', 'Lock');
   }
-  lockService
-    .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
-    .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED)
-    .setCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
 
   // Stores the lock service
   device.lockService = lockService;
@@ -637,9 +634,6 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
     if (!unlatchService) {
       unlatchService = lockAccessory.addService(Service.LockMechanism, 'Latch', 'Unlatch');
     }
-    unlatchService
-      .setCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED)
-      .setCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
 
     // Stores the service
     device.unlatchService = unlatchService;
@@ -832,6 +826,97 @@ NukiSmartLockDevice.prototype.update = function(state) {
     device.lockService
       .updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
   }
+}
+
+/**
+ * Represents the physical Nuki Bridge device.
+ * @param platform The NukiPlatform instance.
+ */
+function NukiBridgeDevice(platform) {
+  const device = this;
+  const { UUIDGen, Accessory, Characteristic, Service } = platform;
+
+  // Sets the bridge IP address
+  device.bridgeIpAddress = platform.config.bridgeIpAddress;
+
+  // Gets all accessories from the platform that match the Bridge IP address
+  let unusedDeviceAccessories = [];
+  let newDeviceAccessories = [];
+  let deviceAccessories = [];
+  for (let i = 0; i < platform.accessories.length; i++) {
+    if (platform.accessories[i].context.bridgeIpAddress === platform.config.bridgeIpAddress) {
+      unusedDeviceAccessories.push(platform.accessories[i]);
+    }
+  }
+
+  // Gets the switch accessory
+  let switchAccessory = null; 
+  for (let i = 0; i < unusedDeviceAccessories.length; i++) {
+    if (unusedDeviceAccessories[i].context.kind === 'SwitchAccessory') {
+      switchAccessory = unusedDeviceAccessories[i];
+      unusedDeviceAccessories.splice(i, 1);
+      break;
+    }
+  }
+
+  // Creates a new one if it has not been cached
+  if (!switchAccessory) {
+    platform.log('Adding new accessory for Bridge with IP address ' + platform.config.bridgeIpAddress + ' and kind SwitchAccessory.');
+    switchAccessory = new Accessory('Bridge', UUIDGen.generate(platform.config.bridgeIpAddress + 'SwitchAccessory'));
+    switchAccessory.context.bridgeIpAddress = platform.config.bridgeIpAddress;
+    switchAccessory.context.kind = 'SwitchAccessory';
+    newDeviceAccessories.push(switchAccessory);
+  }
+  deviceAccessories.push(switchAccessory);
+
+  // Registers the newly created accessories
+  platform.api.registerPlatformAccessories(platform.pluginName, platform.platformName, newDeviceAccessories);
+
+  // Removes all unused accessories
+  for (let i = 0; i < unusedDeviceAccessories.length; i++) {
+    platform.log('Removing unused accessory for Bridge with IP address ' + platform.config.bridgeIpAddress + ' and kind ' + unusedDeviceAccessories[i].context.kind + '.');
+    platform.accessories.splice(platform.accessories.indexOf(unusedDeviceAccessories[i]), 1);
+  }
+  platform.api.unregisterPlatformAccessories(platform.pluginName, platform.platformName, unusedDeviceAccessories);
+
+  // Updates the accessory information
+  for (let i = 0; i < deviceAccessories.length; i++) {
+    let accessoryInformationService = deviceAccessories[i].getService(Service.AccessoryInformation);
+    if (!accessoryInformationService) {
+      accessoryInformationService = deviceAccessories[i].addService(Service.AccessoryInformation);
+    }
+    accessoryInformationService
+      .setCharacteristic(Characteristic.Manufacturer, 'Nuki')
+      .setCharacteristic(Characteristic.Model, 'Bridge')
+      .setCharacteristic(Characteristic.SerialNumber, platform.config.bridgeIpAddress);
+  }
+
+  // Updates the switch
+  let switchService = switchAccessory.getService(Service.Switch);
+  if (!switchService) {
+    switchService = switchAccessory.addService(Service.Switch);
+  }
+  switchService
+    .setCharacteristic(Characteristic.On, false);
+
+  // Subscribes for changes of the switch
+  switchService
+    .getCharacteristic(Characteristic.On).on('set', function (value, callback) {
+
+      // Checks if the operation is true, as the reboot cannot be stopped
+      if (!value) {
+        return callback(null);
+      }
+
+      // Executes the action
+      platform.log(platform.config.bridgeIpAddress + ' - Reboot');
+      platform.client.send('/reboot', function() { });
+      setTimeout(function() {
+        switchService
+          .setCharacteristic(Characteristic.On, false);
+      }, 5000);
+      callback(null);
+    });
 }
 
 /**
