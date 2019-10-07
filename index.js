@@ -133,7 +133,7 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
       let config = null;
       for (let j = 0; j < platform.config.devices.length; j++) {
         if (platform.config.devices[j].nukiId === body[i].nukiId) {
-          config = platform.config.devices[i];
+          config = platform.config.devices[j];
           break;
         }
       }
