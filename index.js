@@ -133,7 +133,7 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
       let config = null;
       for (let j = 0; j < platform.config.devices.length; j++) {
         if (platform.config.devices[j].nukiId === body[i].nukiId) {
-          config = platform.config.devices[i];
+          config = platform.config.devices[j];
           break;
         }
       }
@@ -504,6 +504,11 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 NukiOpenerDevice.prototype.update = function(state) {
   const device = this;
   const { Characteristic } = device.platform;
+
+  // Checks if the state exists, which is not the case if the device is unavailable
+  if (!state) {
+    return;
+  }
   
   // Sets the lock state
   if (state.state == 1 || state.state == 3) {
@@ -764,6 +769,11 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
 NukiSmartLockDevice.prototype.update = function(state) {
   const device = this;
   const { Characteristic } = device.platform;
+
+  // Checks if the state exists, which is not the case if the device is unavailable
+  if (!state) {
+    return;
+  }
   
   // Sets the lock state
   if (state.state == 1) {
