@@ -740,6 +740,15 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
           return callback(null);
         }
 
+        // Checks if the safety mechanism is enabled, so that the lock cannot unlatch when locked
+        if (config.unlatchLockPreventUnlatchIfLocked) {
+          unlatchService
+            .updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+          unlatchService
+            .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+          return;
+        }
+
         // Sets the target state of the lock to unsecured, as both should be displayed as open
         lockService
           .updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
