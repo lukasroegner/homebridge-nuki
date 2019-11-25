@@ -3,8 +3,6 @@ const request = require('request');
 const http = require('http');
 
 var homebridgeObj = null;
-var pluginName = 'homebridge-nuki';
-var platformName = 'NukiPlatform';
 
 /**
  * Defines the export of the platform module.
@@ -16,7 +14,7 @@ module.exports = function (homebridge) {
   homebridgeObj = homebridge;
 
   // Registers the dynamic Nuki platform, as the accessories are read from the API and created dynamically
-  homebridge.registerPlatform(pluginName, platformName, NukiPlatform, true);
+  homebridge.registerPlatform('homebridge-nuki', 'NukiPlatform', NukiPlatform, true);
 }
 
 /**
@@ -35,8 +33,8 @@ function NukiPlatform(log, config, api) {
   platform.Characteristic = homebridgeObj.hap.Characteristic;
   platform.UUIDGen = homebridgeObj.hap.uuid;
   platform.hap = homebridgeObj.hap;
-  platform.pluginName = pluginName;
-  platform.platformName = platformName;
+  platform.pluginName = 'homebridge-nuki';
+  platform.platformName = 'NukiPlatform';
 
   // Checks whether a configuration is provided, otherwise the plugin should not be initialized
   if (!config) {
