@@ -50,9 +50,7 @@ NukiBridgeClient.prototype.process = function () {
 
     // Checks if the last request has been executed within the request buffer
     if (client.lastRequestTimestamp && new Date().getTime() - client.lastRequestTimestamp < client.platform.config.requestBuffer) {
-        setTimeout(function () {
-            client.process();
-        }, Math.max(100, client.platform.config.requestBuffer - (new Date().getTime() - client.lastRequestTimestamp)));
+        setTimeout(function () { client.process(); }, Math.max(100, client.platform.config.requestBuffer - (new Date().getTime() - client.lastRequestTimestamp)));
         return;
     }
 

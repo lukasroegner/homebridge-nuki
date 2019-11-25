@@ -52,12 +52,12 @@ function NukiPlatform(log, config, api) {
 
     // Checks whether the API object is available
     if (!api) {
-        log('Homebridge API not available, please update your homebridge version!');
+        platform.log('Homebridge API not available, please update your homebridge version!');
         return;
     }
 
     // Saves the API object to register new devices later on
-    log('Homebridge API available.');
+    platform.log('Homebridge API available.');
     platform.api = api;
 
     // Subscribes to the event that is raised when homebridge finished loading cached accessories
@@ -94,47 +94,35 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
 
         // Initializes a device for each device from the API
         for (let i = 0; i < body.length; i++) {
+            const apiConfig = body[i];
 
             // Checks if the device is supported by this plugin
-            let isSupported = false;
-            for (let j = 0; j < platform.config.supportedDeviceTypes.length; j++) {
-                if (platform.config.supportedDeviceTypes[j] === body[i].deviceType) {
-                    isSupported = true;
-                    break;
-                }
-            }
-            if (!isSupported) {
-                platform.log('Device with Nuki ID ' + body[i].nukiId + ' not added, as it is not supported by this plugin.');
+            if (!platform.config.supportedDeviceTypes.some(function(t) { return t === apiConfig.deviceType; })) {
+                platform.log('Device with Nuki ID ' + apiConfig.nukiId + ' not added, as it is not supported by this plugin.');
                 continue;
             }
 
             // Prints out the device information
-            if (body[i].deviceType == 0) {
-                platform.log('Device with Nuki ID ' + body[i].nukiId + ' and name ' + body[i].name + ' is a SmartLock.');
+            if (apiConfig.deviceType == 0) {
+                platform.log('Device with Nuki ID ' + apiConfig.nukiId + ' and name ' + apiConfig.name + ' is a SmartLock.');
             }
-            if (body[i].deviceType == 2) {
-                platform.log('Device with Nuki ID ' + body[i].nukiId + ' and name ' + body[i].name + ' is an Opener.');
+            if (apiConfig.deviceType == 2) {
+                platform.log('Device with Nuki ID ' + apiConfig.nukiId + ' and name ' + apiConfig.name + ' is an Opener.');
             }
 
             // Gets the corresponding device configuration
-            let config = null;
-            for (let j = 0; j < platform.config.devices.length; j++) {
-                if (platform.config.devices[j].nukiId === body[i].nukiId) {
-                    config = platform.config.devices[j];
-                    break;
-                }
-            }
+            const config = platform.config.devices.find(function(d) { return d.nukiId === apiConfig.nukiId; });
             if (!config) {
-                platform.log('No configuration provided for device with Nuki ID ' + body[i].nukiId + '.');
+                platform.log('No configuration provided for device with Nuki ID ' + apiConfig.nukiId + '.');
                 continue;
             }
 
             // Creates the device instance and adds it to the list of all devices
-            if (body[i].deviceType == 0) {
-                platform.devices.push(new NukiSmartLockDevice(platform, body[i], config));
+            if (apiConfig.deviceType == 0) {
+                platform.devices.push(new NukiSmartLockDevice(platform, apiConfig, config));
             }
-            if (body[i].deviceType == 2) {
-                platform.devices.push(new NukiOpenerDevice(platform, body[i], config));
+            if (apiConfig.deviceType == 2) {
+                platform.devices.push(new NukiOpenerDevice(platform, apiConfig, config));
             }
         }
 
@@ -144,32 +132,12 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
         }
 
         // Removes the accessories that are not bound to a device
-        let accessoriesToRemove = [];
-        for (let i = 0; i < platform.accessories.length; i++) {
-
-            // Checks if the device exists
-            let deviceExists = false;
-            for (let j = 0; j < platform.devices.length; j++) {
-                if (platform.devices[j].nukiId === platform.accessories[i].context.nukiId) {
-                    deviceExists = true;
-                    break;
-                }
-                if (platform.devices[j].bridgeIpAddress === platform.accessories[i].context.bridgeIpAddress) {
-                    deviceExists = true;
-                    break;
-                }
-            }
-            if (deviceExists) {
-                continue;
-            }
-
-            // Removes the accessory
-            platform.log('Removing accessory with Nuki ID ' + platform.accessories[i].context.nukiId + ' and kind ' + platform.accessories[i].context.kind + '.');
-            accessoriesToRemove.push(platform.accessories[i]);
-            platform.accessories.splice(i, 1);
+        let unusedAccessories = platform.accessories.filter(function(a) { return !platform.devices.some(function(d) { return d.nukiId === a.context.nukiId || d.bridgeIpAddress === a.context.bridgeIpAddress; }); });
+        for (let i = 0; i < unusedAccessories.length; i++) {
+            const unusedAccessory = unusedDeviceAccessories[i];
+            platform.log('Removing accessory with Nuki ID ' + unusedAccessory.context.nukiId + ' and kind ' + unusedAccessory.context.kind + '.');
+            platform.accessories.splice(platform.accessories.indexOf(unusedAccessory), 1);
         }
-
-        // Actually removes the accessories from the platform
         platform.api.unregisterPlatformAccessories(platform.pluginName, platform.platformName, accessoriesToRemove);
 
         // Returns a positive result
@@ -273,16 +241,7 @@ NukiPlatform.prototype.registerCallback = function (callback) {
         }
 
         // Checks if the callback is already registered
-        let isRegistered = false;
-        if (body.callbacks) {
-            for (let i = 0; i < body.callbacks.length; i++) {
-                if (body.callbacks[i].url === 'http://' + platform.config.hostNameOrIpAddress + ':' + platform.config.hostCallbackApiPort) {
-                    isRegistered = true;
-                    break;
-                }
-            }
-        }
-        if (isRegistered) {
+        if (body.callbacks && body.callbacks.some(function(c) { return c.url === 'http://' + platform.config.hostNameOrIpAddress + ':' + platform.config.hostCallbackApiPort; })) {
             platform.log('Callback already registered.');
             return callback(true);
         }

@@ -11,27 +11,15 @@ function NukiBridgeDevice(platform) {
     device.bridgeIpAddress = platform.config.bridgeIpAddress;
 
     // Gets all accessories from the platform that match the Bridge IP address
-    let unusedDeviceAccessories = [];
+    let unusedDeviceAccessories = platform.accessories.filter(function(a) { return a.context.bridgeIpAddress === platform.config.bridgeIpAddress; });
     let newDeviceAccessories = [];
     let deviceAccessories = [];
-    for (let i = 0; i < platform.accessories.length; i++) {
-        if (platform.accessories[i].context.bridgeIpAddress === platform.config.bridgeIpAddress) {
-            unusedDeviceAccessories.push(platform.accessories[i]);
-        }
-    }
 
     // Gets the switch accessory
-    let switchAccessory = null;
-    for (let i = 0; i < unusedDeviceAccessories.length; i++) {
-        if (unusedDeviceAccessories[i].context.kind === 'SwitchAccessory') {
-            switchAccessory = unusedDeviceAccessories[i];
-            unusedDeviceAccessories.splice(i, 1);
-            break;
-        }
-    }
-
-    // Creates a new one if it has not been cached
-    if (!switchAccessory) {
+    let switchAccessory = unusedDeviceAccessories.find(function(a) { return a.context.kind === 'SwitchAccessory'; });
+    if (switchAccessory) {
+        unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(switchAccessory), 1);
+    } else {
         platform.log('Adding new accessory for Bridge with IP address ' + platform.config.bridgeIpAddress + ' and kind SwitchAccessory.');
         switchAccessory = new Accessory('Bridge', UUIDGen.generate(platform.config.bridgeIpAddress + 'SwitchAccessory'));
         switchAccessory.context.bridgeIpAddress = platform.config.bridgeIpAddress;
@@ -45,16 +33,18 @@ function NukiBridgeDevice(platform) {
 
     // Removes all unused accessories
     for (let i = 0; i < unusedDeviceAccessories.length; i++) {
-        platform.log('Removing unused accessory for Bridge with IP address ' + platform.config.bridgeIpAddress + ' and kind ' + unusedDeviceAccessories[i].context.kind + '.');
-        platform.accessories.splice(platform.accessories.indexOf(unusedDeviceAccessories[i]), 1);
+        const unusedDeviceAccessory = unusedDeviceAccessories[i];
+        platform.log('Removing unused accessory for Bridge with IP address ' + platform.config.bridgeIpAddress + ' and kind ' + unusedDeviceAccessory.context.kind + '.');
+        platform.accessories.splice(platform.accessories.indexOf(unusedDeviceAccessory), 1);
     }
     platform.api.unregisterPlatformAccessories(platform.pluginName, platform.platformName, unusedDeviceAccessories);
 
     // Updates the accessory information
     for (let i = 0; i < deviceAccessories.length; i++) {
-        let accessoryInformationService = deviceAccessories[i].getService(Service.AccessoryInformation);
+        const deviceAccessory = deviceAccessories[i];
+        let accessoryInformationService = deviceAccessory.getService(Service.AccessoryInformation);
         if (!accessoryInformationService) {
-            accessoryInformationService = deviceAccessories[i].addService(Service.AccessoryInformation);
+            accessoryInformationService = deviceAccessory.addService(Service.AccessoryInformation);
         }
         accessoryInformationService
             .setCharacteristic(Characteristic.Manufacturer, 'Nuki')
@@ -67,27 +57,22 @@ function NukiBridgeDevice(platform) {
     if (!switchService) {
         switchService = switchAccessory.addService(Service.Switch);
     }
-    switchService
-        .setCharacteristic(Characteristic.On, false);
+    switchService.setCharacteristic(Characteristic.On, false);
 
     // Subscribes for changes of the switch
-    switchService
-        .getCharacteristic(Characteristic.On).on('set', function (value, callback) {
+    switchService.getCharacteristic(Characteristic.On).on('set', function (value, callback) {
 
-            // Checks if the operation is true, as the reboot cannot be stopped
-            if (!value) {
-                return callback(null);
-            }
+        // Checks if the operation is true, as the reboot cannot be stopped
+        if (!value) {
+            return callback(null);
+        }
 
-            // Executes the action
-            platform.log(platform.config.bridgeIpAddress + ' - Reboot');
-            platform.client.send('/reboot', function () { });
-            setTimeout(function () {
-                switchService
-                    .setCharacteristic(Characteristic.On, false);
-            }, 5000);
-            callback(null);
-        });
+        // Executes the action
+        platform.log(platform.config.bridgeIpAddress + ' - Reboot');
+        platform.client.send('/reboot', function () { });
+        setTimeout(function () { switchService.setCharacteristic(Characteristic.On, false); }, 5000);
+        callback(null);
+    });
 }
 
 /**
