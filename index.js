@@ -2,18 +2,11 @@
 const request = require('request');
 const http = require('http');
 
-var homebridgeObj = null;
-
 /**
  * Defines the export of the platform module.
  * @param homebridge The homebridge object that contains all classes, objects and functions for communicating with HomeKit.
  */
 module.exports = function (homebridge) {
-
-  // Gets the classes required for implementation of the plugin
-  homebridgeObj = homebridge;
-
-  // Registers the dynamic Nuki platform, as the accessories are read from the API and created dynamically
   homebridge.registerPlatform('homebridge-nuki', 'NukiPlatform', NukiPlatform, true);
 }
 
@@ -27,12 +20,12 @@ function NukiPlatform(log, config, api) {
   const platform = this;
 
   // Saves objects for functions
-  platform.Accessory = homebridgeObj.platformAccessory;
-  platform.Categories = homebridgeObj.hap.Accessory.Categories;
-  platform.Service = homebridgeObj.hap.Service;
-  platform.Characteristic = homebridgeObj.hap.Characteristic;
-  platform.UUIDGen = homebridgeObj.hap.uuid;
-  platform.hap = homebridgeObj.hap;
+  platform.Accessory = api.platformAccessory;
+  platform.Categories = api.hap.Accessory.Categories;
+  platform.Service = api.hap.Service;
+  platform.Characteristic = api.hap.Characteristic;
+  platform.UUIDGen = api.hap.uuid;
+  platform.hap = api.hap;
   platform.pluginName = 'homebridge-nuki';
   platform.platformName = 'NukiPlatform';
 
