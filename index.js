@@ -6,5 +6,5 @@ const NukiPlatform = require('./src/nuki-platform');
  * @param homebridge The homebridge API that contains all classes, objects and functions for communicating with HomeKit.
  */
 module.exports = function (homebridge) {
-  homebridge.registerPlatform('homebridge-nuki', 'NukiPlatform', NukiPlatform, true);
+    homebridge.registerPlatform('homebridge-nuki', 'NukiPlatform', NukiPlatform, true);
 }
