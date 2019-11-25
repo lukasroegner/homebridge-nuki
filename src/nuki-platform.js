@@ -134,11 +134,11 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
         // Removes the accessories that are not bound to a device
         let unusedAccessories = platform.accessories.filter(function(a) { return !platform.devices.some(function(d) { return d.nukiId === a.context.nukiId || d.bridgeIpAddress === a.context.bridgeIpAddress; }); });
         for (let i = 0; i < unusedAccessories.length; i++) {
-            const unusedAccessory = unusedDeviceAccessories[i];
+            const unusedAccessory = unusedAccessories[i];
             platform.log('Removing accessory with Nuki ID ' + unusedAccessory.context.nukiId + ' and kind ' + unusedAccessory.context.kind + '.');
             platform.accessories.splice(platform.accessories.indexOf(unusedAccessory), 1);
         }
-        platform.api.unregisterPlatformAccessories(platform.pluginName, platform.platformName, accessoriesToRemove);
+        platform.api.unregisterPlatformAccessories(platform.pluginName, platform.platformName, unusedAccessories);
 
         // Returns a positive result
         platform.log('Got devices from the Nuki Bridge API.');
