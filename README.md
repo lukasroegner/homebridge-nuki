@@ -69,7 +69,8 @@ Start homebridge with the plugin installed, however, do not provide any devices 
                     "isContinuousModeEnabled": false,
                     "unlatchFromLockedToUnlocked": false,
                     "unlatchFromUnlockedToUnlocked": false,
-                    "unlatchLock": false
+                    "unlatchLock": false,
+                    "unlatchLockPreventUnlatchIfLocked": false
                 }
             ]
         }
@@ -103,6 +104,7 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 
 **unlatchLock**: If set to true, a second lock switch is exposed for unlatching the smart lock. (only for SmartLock)
 
+**unlatchLockPreventUnlatchIfLocked**: If set to true, the second lock (**unlatchLock** has to be true) can only operate if the SmartLock is unlocked. (only for SmartLock)
 
 _______________________________
 [1] Also works with Siri, you can ask to unlock devices that are already unlocked.
