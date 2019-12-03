@@ -164,7 +164,7 @@ NukiApi.prototype.getEndpoint = function (uri) {
     if (uriMatch && uriMatch.length === 2) {
         return {
             name: 'device',
-            nukiId: decodeURI(uriMatch[1])
+            nukiId: parseInt(uriMatch[1])
         };
     }
 
