@@ -70,8 +70,20 @@ function NukiApi(platform) {
                 
                 // Performs the action based on the endpoint and method
                 switch (endpoint.name) {
+                    case 'propertyByDevice':
+                        switch (request.method) {
+                            case 'GET':
+                                api.handleGetPropertyByDevice(endpoint, response);
+                                return;
+                        }
+                        break;
+
                     case 'device':
                         switch (request.method) {
+                            case 'GET':
+                                api.handleGetDevice(endpoint, response);
+                                return;
+
                             case 'POST':
                                 api.handlePostDevice(endpoint, body, response);
                                 return;
@@ -88,6 +100,111 @@ function NukiApi(platform) {
     } catch (e) {
         api.platform.log('API could not be started: ' + JSON.stringify(e));
     }
+}
+
+/**
+ * Handles requests to GET /devices/{nukiId}/{propertyName}.
+ * @param endpoint The endpoint information.
+ * @param response The response object.
+ */
+NukiApi.prototype.handleGetPropertyByDevice = function (endpoint, response) {
+    const api = this;
+
+    // Checks if the device exists
+    const apiDevice = api.platform.apiConfig.find(function(d) { return d.nukiId === endpoint.nukiId; });
+    if (!apiDevice) {
+        api.platform.log('Device not found.');
+        response.statusCode = 400;
+        response.end();
+        return;
+    }
+
+    // Gets the value based on property name
+    switch (endpoint.propertyName) {
+
+        case 'state':
+            response.setHeader('Content-Type', 'text/plain');
+            if (apiDevice.deviceType == 0) {
+                if (apiDevice.lastKnownState.state == 1) {
+                    response.write('locked');
+                }
+                if (apiDevice.lastKnownState.state == 3) {
+                    response.write('unlocked');
+                }
+                if (apiDevice.lastKnownState.state == 5) {
+                    response.write('unlatched');
+                }
+                if (apiDevice.lastKnownState.state == 254) {
+                    response.write('jammed');
+                }
+            }
+            if (apiDevice.deviceType == 2) {
+                if (apiDevice.lastKnownState.state == 1 || apiDevice.lastKnownState.state == 3) {
+                    response.write('locked');
+                }
+                if (apiDevice.lastKnownState.state == 5 || apiDevice.lastKnownState.state == 7) {
+                    response.write('unlatched');
+                }
+            }            
+            response.statusCode = 200;
+            response.end();
+            break;
+
+        default:
+            api.platform.log('Property not found.');
+            response.statusCode = 400;
+            response.end();
+            return;
+    }
+}
+
+/**
+ * Handles requests to GET /devices/{nukiId}.
+ * @param endpoint The endpoint information.
+ * @param response The response object.
+ */
+NukiApi.prototype.handleGetDevice = function (endpoint, response) {
+    const api = this;
+
+    // Checks if the device exists
+    const apiDevice = api.platform.apiConfig.find(function(d) { return d.nukiId === endpoint.nukiId; });
+    if (!apiDevice) {
+        api.platform.log('Device not found.');
+        response.statusCode = 400;
+        response.end();
+        return;
+    }
+
+    // Gets all properties
+    const responseObject = {};
+    if (apiDevice.deviceType == 0) {
+        if (apiDevice.lastKnownState.state == 1) {
+            responseObject.state = 'locked';
+        }
+        if (apiDevice.lastKnownState.state == 3) {
+            responseObject.state = 'unlocked';
+        }
+        if (apiDevice.lastKnownState.state == 5) {
+            responseObject.state = 'unlatched';
+        }
+        if (apiDevice.lastKnownState.state == 254) {
+            responseObject.state = 'jammed';
+        }
+    }
+    if (apiDevice.deviceType == 2) {
+        if (apiDevice.lastKnownState.state == 1 || apiDevice.lastKnownState.state == 3) {
+            responseObject.state = 'locked';
+        }
+        if (apiDevice.lastKnownState.state == 5 || apiDevice.lastKnownState.state == 7) {
+            responseObject.state = 'unlatched';
+        }
+    }    
+    
+    // Writes the response
+    response.setHeader('Content-Type', 'application/json');
+    response.write(JSON.stringify(responseObject));
+    response.statusCode = 200;
+    response.end();
 }
 
 /**
@@ -121,8 +238,8 @@ NukiApi.prototype.handlePostDevice = function (endpoint, body, response) {
     for (let propertyName in body) {
         const devicePropertyValue = body[propertyName];
         switch (propertyName) {
-            case 'locked':
-                if (devicePropertyValue === true) {
+            case 'state':
+                if (devicePropertyValue === 'locked' && apiDevice.deviceType == 0) {
                     promises.push(new Promise(function (resolve, reject) {
                         api.platform.log(apiDevice.nukiId + ' - Lock via API');
                         api.platform.client.send('/lockAction?nukiId=' + apiDevice.nukiId + '&deviceType=0&action=2', function (actionSuccess, actionBody) {
@@ -159,7 +276,17 @@ NukiApi.prototype.getEndpoint = function (uri) {
     // Parses the request path
     const uriParts = url.parse(uri);
 
-    // Checks if the URL matches the devices endpoint
+    // Checks if the URL matches the devices endpoint with property name
+    let uriMatch = /\/devices\/(.+)\/(.+)/g.exec(uriParts.pathname);
+    if (uriMatch && uriMatch.length === 3) {
+        return {
+            name: 'propertyByDevice', 
+            nukiId: parseInt(uriMatch[1]),
+            propertyName: decodeURI(uriMatch[2])
+        };
+    }
+
+    // Checks if the URL matches the devices endpoint without property name
     uriMatch = /\/devices\/(.+)/g.exec(uriParts.pathname);
     if (uriMatch && uriMatch.length === 2) {
         return {

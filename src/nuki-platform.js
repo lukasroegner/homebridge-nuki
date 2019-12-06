@@ -213,6 +213,13 @@ NukiPlatform.prototype.startCallbackServer = function (callback) {
                         platform.devices[i].update(content);
                     }
                 }
+
+                // Updates the API config object
+                for (let i = 0; i < platform.apiConfig.length; i++) {
+                    if (platform.apiConfig[i].nukiId == content.nukiId) {
+                        platform.apiConfig[i].lastKnownState = content;
+                    }
+                }
             });
         }).listen(platform.config.hostCallbackApiPort, "0.0.0.0");
 

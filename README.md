@@ -129,9 +129,32 @@ The token has to be specified as value of the `Authorization` header on each req
 Authorization: <YOUR-TOKEN>
 ```
 
-### API - Lock device
+### API - Get values of device
 
-Use the `devices/<NUKI-ID>` endpoint to set values of a Nuki device. The HTTP method has to be `POST`:
+Use the `devices/<NUKI-ID>/<PROPERTY-NAME>` endpoint to retrieve a single value of a device. The HTTP method has to be `GET`:
+```
+http://<YOUR-HOST-IP-ADDRESS>:<apiPort>/devices/<NUKI-ID>/<PROPERTY-NAME>
+```
+
+The response is a plain text response (easier to handle in HomeKit shortcuts), the following property names are supported:
+
+* **state** The lock state of the device (possible values: `locked`, `unlocked`, `unlatched`, `jammed`)
+
+Use the `devices/<NUKI-ID>` endpoint to retrieve all values of a device. The HTTP method has to be `GET`:
+```
+http://<YOUR-HOST-IP-ADDRESS>:<apiPort>/devices/<NUKI-ID>
+```
+
+The response is a JSON object containing all values:
+```
+{
+    "state": "locked"
+}
+```
+
+### API - Set values of device
+
+Use the `devices/<NUKI-ID>` endpoint to set values of a device. The HTTP method has to be `POST`:
 ```
 http://<YOUR-HOST-IP-ADDRESS>:<apiPort>/devices/<NUKI-ID>
 ```
@@ -145,7 +168,7 @@ The body of the request has to be JSON containing the new values:
 
 The following property names are supported:
 
-* **locked** The lock state (possible values: `true` to lock the door)
+* **state** The lock state (possible values: `locked` to lock the door)
 
 _______________________________
 [1] Also works with Siri, you can ask to unlock devices that are already unlocked.
