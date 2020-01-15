@@ -137,13 +137,25 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
 
         // Checks if the operation is secured
         if (value === Characteristic.LockTargetState.SECURED) {
-            platform.log(config.nukiId + ' - Lock');
-            platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=2', function (actionSuccess, actionBody) {
-                if (actionSuccess && actionBody.success) {
-                    device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
-                    device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+            if (lockService.getCharacteristic(Characteristic.LockCurrentState).value === Characteristic.LockCurrentState.SECURED) {
+                if (config.lockFromLockedToLocked) {
+                    platform.log(config.nukiId + ' - Lock again (already locked)');
+                    platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=2', function (actionSuccess, actionBody) {
+                        if (actionSuccess && actionBody.success) {
+                            device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+                            device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+                        }
+                    });
                 }
-            });
+            } else {
+                platform.log(config.nukiId + ' - Lock');
+                platform.client.send('/lockAction?nukiId=' + config.nukiId + '&deviceType=0&action=2', function (actionSuccess, actionBody) {
+                    if (actionSuccess && actionBody.success) {
+                        device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+                        device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+                    }
+                });
+            }
         }
 
         // Performs the callback

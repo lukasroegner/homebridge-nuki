@@ -105,6 +105,8 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 
 **unlatchFromUnlockedToUnlocked**: If set to true, the door is unlatched when you switch from "unlocked" to "unlocked" [1] in the Home app (this move is valid and works in the Home app, just hold down the switch, swipe it to "locked" and then "unlocked" without releasing your finger - do not release the finger until you reached the "unlocked" position again). If set to false, nothing is done when you switch from "unlocked" to "unlocked" in the Home app. [2] (only for SmartLock)
 
+**lockFromLockedToLocked**: If set to true, the door can be locked again if the lock is already locked (e.g. 360 degree to 720 degree). (only for SmartLock)
+
 **unlatchLock**: If set to true, a second lock switch is exposed for unlatching the smart lock. (only for SmartLock)
 
 **unlatchLockPreventUnlatchIfLocked**: If set to true, the second lock (**unlatchLock** has to be true) can only operate if the SmartLock is unlocked. (only for SmartLock)
