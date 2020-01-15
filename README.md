@@ -67,8 +67,10 @@ Start homebridge with the plugin installed, however, do not provide any devices 
                     "nukiId": 0,
                     "isRingToOpenEnabled": false,
                     "isContinuousModeEnabled": false,
+                    "isSingleAccessoryModeEnabled": false,
                     "unlatchFromLockedToUnlocked": false,
                     "unlatchFromUnlockedToUnlocked": false,
+                    "lockFromLockedToLocked": false,
                     "unlatchLock": false,
                     "unlatchLockPreventUnlatchIfLocked": false
                 }
@@ -100,6 +102,8 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 **isRingToOpenEnabled**: If set to true, a switch is exposed for the ring-to-open function. (only for Opener)
 
 **isContinuousModeEnabled**: If set to true, a switch is exposed for the continuous mode. (only for Opener)
+
+**isSingleAccessoryModeEnabled**: By default, the ring-to-open and continuous mode switches are placed in a separate accessory (works best in the Apple Home ap). If this value is set to true, those switches are added to the Opener lock accessory instead of a separate switch accessory. (only for Opener)
 
 **unlatchFromLockedToUnlocked**: If set to true, the door is unlatched when you switch from "locked" to "unlocked" in the Home app. If set to false, the door is just unlocked when you switch from "locked" to "unlocked" in the Home app. (only for SmartLock)
 

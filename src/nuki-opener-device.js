@@ -34,17 +34,21 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     // Gets the switch accessory
     let switchAccessory = null;
     if (config.isRingToOpenEnabled || config.isContinuousModeEnabled) {
-        switchAccessory = unusedDeviceAccessories.find(function(a) { return a.context.kind === 'SwitchAccessory'; });
-        if (switchAccessory) {
-            unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(switchAccessory), 1);
+        if (config.isSingleAccessoryModeEnabled) {
+            switchAccessory = lockAccessory;
         } else {
-            platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind SwitchAccessory.');
-            switchAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
-            switchAccessory.context.nukiId = config.nukiId;
-            switchAccessory.context.kind = 'SwitchAccessory';
-            newDeviceAccessories.push(switchAccessory);
+            switchAccessory = unusedDeviceAccessories.find(function(a) { return a.context.kind === 'SwitchAccessory'; });
+            if (switchAccessory) {
+                unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(switchAccessory), 1);
+            } else {
+                platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind SwitchAccessory.');
+                switchAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
+                switchAccessory.context.nukiId = config.nukiId;
+                switchAccessory.context.kind = 'SwitchAccessory';
+                newDeviceAccessories.push(switchAccessory);
+            }
+            deviceAccessories.push(switchAccessory);
         }
-        deviceAccessories.push(switchAccessory);
     }
 
     // Registers the newly created accessories
