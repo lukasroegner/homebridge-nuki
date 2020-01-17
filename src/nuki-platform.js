@@ -5,6 +5,7 @@ const NukiBridgeClient = require('./nuki-bridge-client');
 const NukiSmartLockDevice = require('./nuki-smart-lock-device');
 const NukiOpenerDevice = require('./nuki-opener-device');
 const NukiBridgeDevice = require('./nuki-bridge-device');
+const NukiApi = require('./nuki-api');
 
 /**
  * Initializes a new platform instance for the Nuki plugin.
@@ -43,6 +44,9 @@ function NukiPlatform(log, config, api) {
     platform.config.bridgeApiPort = platform.config.bridgeApiPort || 8080;
     platform.config.bridgeApiToken = platform.config.bridgeApiToken || null;
     platform.config.devices = platform.config.devices || [];
+    platform.config.isApiEnabled = platform.config.isApiEnabled || false;
+    platform.config.apiPort = platform.config.apiPort || 40011;
+    platform.config.apiToken = platform.config.apiToken || null;
     platform.config.supportedDeviceTypes = [0, 2];
     platform.config.requestBuffer = 3000;
     platform.config.requestRetryCount = 3;
@@ -72,6 +76,11 @@ function NukiPlatform(log, config, api) {
                         platform.registerCallback(function () { });
                     }
                 });
+
+                // Starts the API if requested
+                if (platform.config.isApiEnabled) {
+                    platform.nukiApi = new NukiApi(platform);
+                }
             }
         });
     });
@@ -91,6 +100,9 @@ NukiPlatform.prototype.getDevicesFromApi = function (callback) {
         if (!success) {
             return callback(false);
         }
+
+        // Stores the devices in the plugin
+        platform.apiConfig = body;
 
         // Initializes a device for each device from the API
         for (let i = 0; i < body.length; i++) {
@@ -199,6 +211,13 @@ NukiPlatform.prototype.startCallbackServer = function (callback) {
                 for (let i = 0; i < platform.devices.length; i++) {
                     if (platform.devices[i].nukiId == content.nukiId) {
                         platform.devices[i].update(content);
+                    }
+                }
+
+                // Updates the API config object
+                for (let i = 0; i < platform.apiConfig.length; i++) {
+                    if (platform.apiConfig[i].nukiId == content.nukiId) {
+                        platform.apiConfig[i].lastKnownState = content;
                     }
                 }
             });
