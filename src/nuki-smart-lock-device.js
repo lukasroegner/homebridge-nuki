@@ -172,10 +172,12 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
             }
 
             // Checks if the safety mechanism is enabled, so that the lock cannot unlatch when locked
-            if (config.unlatchLockPreventUnlatchIfLocked) {
-                unlatchService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
-                unlatchService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
-                return;
+            if (lockService.getCharacteristic(Characteristic.LockCurrentState).value === Characteristic.LockCurrentState.SECURED) {
+                if (config.unlatchLockPreventUnlatchIfLocked) {
+                    unlatchService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+                    unlatchService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+                    return;
+                }
             }
 
             // Sets the target state of the lock to unsecured, as both should be displayed as open
