@@ -72,7 +72,9 @@ Start homebridge with the plugin installed, however, do not provide any devices 
                     "unlatchFromUnlockedToUnlocked": false,
                     "lockFromLockedToLocked": false,
                     "unlatchLock": false,
-                    "unlatchLockPreventUnlatchIfLocked": false
+                    "unlatchLockPreventUnlatchIfLocked": false,
+                    "defaultLockName": "Lock",
+                    "defaultLatchName": "Latch"
                 }
             ],
             "isApiEnabled": false,
@@ -114,6 +116,10 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 **unlatchLock**: If set to true, a second lock switch is exposed for unlatching the smart lock. (only for SmartLock)
 
 **unlatchLockPreventUnlatchIfLocked**: If set to true, the second lock (**unlatchLock** has to be true) can only operate if the SmartLock is unlocked. (only for SmartLock)
+
+**defaultLockName** (optional): Lets you customize the name of the lock mechanism. Useful for the Alexa plugin, which does not detect changes of service names in HomeKit. Defaults to `Lock`. (only for SmartLock)
+
+**defaultLatchName** (optional): Lets you customize the name of the unlatch mechanism. Useful for the Alexa plugin, which does not detect changes of service names in HomeKit. Defaults to `Latch`. (only for SmartLock)
 
 **isApiEnabled** (optional): Enables an HTTP API for controlling devices. Defaults to `false`. See **API** for more information.
 

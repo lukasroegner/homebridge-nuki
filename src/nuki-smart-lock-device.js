@@ -12,6 +12,8 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
     // Sets the nuki ID and platform
     device.nukiId = config.nukiId;
     device.platform = platform;
+    device.lockName = config.defaultLockName || 'Lock';
+    device.latchName = config.defaultLatchName || 'Latch';
 
     // Gets all accessories from the platform that match the Nuki ID
     let unusedDeviceAccessories = platform.accessories.filter(function(a) { return a.context.nukiId === config.nukiId; });
@@ -58,7 +60,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
     // Updates the lock
     let lockService = lockAccessory.getServiceByUUIDAndSubType(Service.LockMechanism, 'Lock');
     if (!lockService) {
-        lockService = lockAccessory.addService(Service.LockMechanism, 'Lock', 'Lock');
+        lockService = lockAccessory.addService(Service.LockMechanism, device.lockName, 'Lock');
     }
 
     // Stores the lock service
@@ -68,7 +70,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
     let unlatchService = lockAccessory.getServiceByUUIDAndSubType(Service.LockMechanism, 'Unlatch');
     if (config.unlatchLock) {
         if (!unlatchService) {
-            unlatchService = lockAccessory.addService(Service.LockMechanism, 'Latch', 'Unlatch');
+            unlatchService = lockAccessory.addService(Service.LockMechanism, device.latchName, 'Unlatch');
         }
 
         // Stores the service
