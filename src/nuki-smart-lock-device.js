@@ -33,6 +33,26 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
     }
     deviceAccessories.push(lockAccessory);
 
+    // Gets the contact sensor accessory
+    let contactSensorAccessory = null;
+    if (config.isDoorSensorEnabled) {
+        if (config.isSingleAccessoryModeEnabled) {
+            contactSensorAccessory = lockAccessory;
+        } else {
+            contactSensorAccessory = unusedDeviceAccessories.find(function(a) { return a.context.kind === 'ContactSensorAccessory'; });
+            if (contactSensorAccessory) {
+                unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(contactSensorAccessory), 1);
+            } else {
+                platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind ContactSensorAccessory.');
+                contactSensorAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'ContactSensorAccessory'));
+                contactSensorAccessory.context.nukiId = config.nukiId;
+                contactSensorAccessory.context.kind = 'ContactSensorAccessory';
+                newDeviceAccessories.push(contactSensorAccessory);
+            }
+            deviceAccessories.push(contactSensorAccessory);
+        }
+    }
+
     // Registers the newly created accessories
     platform.api.registerPlatformAccessories(platform.pluginName, platform.platformName, newDeviceAccessories);
 
@@ -80,6 +100,18 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
             lockAccessory.removeService(unlatchService);
             unlatchService = null;
         }
+    }
+
+    // Updates the contact sensor
+    let contactSensorService = null;
+    if (contactSensorAccessory && config.isDoorSensorEnabled) {
+        contactSensorService = contactSensorAccessory.getServiceByUUIDAndSubType(Service.ContactSensor, 'DoorSensor');
+        if (!contactSensorService) {
+            contactSensorService = contactSensorAccessory.addService(Service.ContactSensor, 'Door', 'DoorSensor');
+        }
+
+        // Stores the service
+        device.contactSensorService = contactSensorService;
     }
 
     // Subscribes for changes of the target state characteristic
@@ -258,6 +290,22 @@ NukiSmartLockDevice.prototype.update = function (state) {
         device.lockService.updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
     } else {
         device.lockService.updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+    }
+
+    // Sets the door sensor state
+    if (device.contactSensorService) {
+        if (state.doorsensorState === 3) {
+            device.platform.log(device.nukiId + ' - Updating Door State: Open');
+            device.contactSensorService.updateCharacteristic(Characteristic.ContactSensorState, Characteristic.ContactSensorState.CONTACT_NOT_DETECTED);
+            device.contactSensorService.updateCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT);
+        } else if (state.doorsensorState === 2) {
+            device.platform.log(device.nukiId + ' - Updating Door State: Closed');
+            device.contactSensorService.updateCharacteristic(Characteristic.ContactSensorState, Characteristic.ContactSensorState.CONTACT_DETECTED);
+            device.contactSensorService.updateCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.NO_FAULT);
+        } else {
+            device.platform.log(device.nukiId + ' - Updating Door State: Fault');
+            device.contactSensorService.updateCharacteristic(Characteristic.StatusFault, Characteristic.StatusFault.GENERAL_FAULT);
+        }
     }
 }
 

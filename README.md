@@ -12,6 +12,7 @@ The Nuki Bridge is exposed as a switch for rebooting (optional).
 
 The Nuki SmartLock is exposed as a lock in HomeKit with support for:
 - Lock/Unlock/Unlatch
+- Door State
 - Status for Low Battery
 
 Optionally, a second switch is shown in the lock that represents the latch.
@@ -65,6 +66,7 @@ Start homebridge with the plugin installed, however, do not provide any devices 
             "devices": [
                 {
                     "nukiId": 0,
+                    "isDoorSensorEnabled": false,
                     "isRingToOpenEnabled": false,
                     "isContinuousModeEnabled": false,
                     "isSingleAccessoryModeEnabled": false,
@@ -101,11 +103,13 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 
 **nukiId**: The ID of the device (provide as number, not as string).
 
+**isDoorSensorEnabled**: If set to true, a contact snesor is exposed for the door state. (only for SmartLock)
+
 **isRingToOpenEnabled**: If set to true, a switch is exposed for the ring-to-open function. (only for Opener)
 
 **isContinuousModeEnabled**: If set to true, a switch is exposed for the continuous mode. (only for Opener)
 
-**isSingleAccessoryModeEnabled**: By default, the ring-to-open and continuous mode switches are placed in a separate accessory (works best in the Apple Home ap). If this value is set to true, those switches are added to the Opener lock accessory instead of a separate switch accessory. (only for Opener)
+**isSingleAccessoryModeEnabled**: By default, the ring-to-open and continuous mode switches are placed in a separate accessory (Opener only, works best in the Apple Home app), and the lock and door sensor are also played in a separate accessory (SmartLock only). If this value is set to true, those services are all exposed in a single accessory.
 
 **unlatchFromLockedToUnlocked**: If set to true, the door is unlatched when you switch from "locked" to "unlocked" in the Home app. If set to false, the door is just unlocked when you switch from "locked" to "unlocked" in the Home app. (only for SmartLock)
 
