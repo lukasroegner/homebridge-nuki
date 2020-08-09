@@ -84,6 +84,21 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     // Stores the lock service
     device.lockService = lockService;
 
+    // Updates the doorbell
+    let doorbellService = lockAccessory.getService(Service.Doorbell);
+    if (config.isDoorbellEnabled) {
+        if (!doorbellService) {
+            doorbellService = lockAccessory.addService(Service.Doorbell);
+        }
+
+        // Stores the doorbell service
+        device.doorbellService = doorbellService;
+    } else {
+        if (doorbellService) {
+            lockAccessory.removeService(doorbellService);
+        }
+    }
+
     // Updates the RTO switch
     let ringToOpenSwitchService = null;
     if (switchAccessory && config.isRingToOpenEnabled) {
@@ -148,7 +163,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
             callback(null);
         });
     }
-
+    
     // Updates the state initially
     device.update(apiConfig.lastKnownState);
 }
@@ -180,6 +195,12 @@ NukiOpenerDevice.prototype.update = function (state) {
     if (state.state == 7) {
         device.platform.log(device.nukiId + ' - Updating lock state: -/UNSECURED');
         device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.UNSECURED);
+    }
+
+    // Sets the ring action state
+    if (device.doorbellService && state.ringactionState) {
+        device.platform.log(device.nukiId + ' - Updating doorbell: Ring');
+        device.doorbellService.updateCharacteristic(Characteristic.ProgrammableSwitchEvent, 0);
     }
 
     // Sets the status for the continuous mode
