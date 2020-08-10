@@ -13,7 +13,7 @@ The Nuki Bridge is exposed as a switch for rebooting (optional).
 The Nuki SmartLock is exposed as a lock in HomeKit with support for:
 - Lock/Unlock/Unlatch
 - Door State
-- Status for Low Battery
+- Status for Battery (level and low warning)
 
 Optionally, a second switch is shown in the lock that represents the latch.
 
@@ -26,6 +26,8 @@ The Nuki Opener is exposed as a lock in HomeKit with support for:
 Optionally, the following switches are exposed:
 - Ring-to-open (on/off)
 - Continuous Mode (on/off)
+
+Optionally, you can get doorbell notificaions for the Opener.
 
 The plugin is optimized for usage of the Home app in iOS 13, i.e. a separate accessory is exposed for RTO and continuous mode switches.
 

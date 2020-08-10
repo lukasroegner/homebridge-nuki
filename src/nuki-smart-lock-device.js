@@ -102,6 +102,21 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
         }
     }
 
+    // Removes the old low battery characteristic
+    let statusLowBatteryCharacteristic = lockService.getCharacteristic(Characteristic.StatusLowBattery);
+    if (statusLowBatteryCharacteristic) {
+        lockService.removeCharacteristic(statusLowBatteryCharacteristic);
+    }
+
+    // Updates the battery service
+    let batteryService = lockAccessory.getServiceByUUIDAndSubType(Service.BatteryService, 'Battery');
+    if (!batteryService) {
+        batteryService = lockAccessory.addService(Service.BatteryService, 'Battery', 'Battery');
+    }
+
+    // Stores the battery service
+    device.batteryService = batteryService;
+
     // Updates the contact sensor
     let contactSensorService = null;
     if (contactSensorAccessory && config.isDoorSensorEnabled) {
@@ -287,9 +302,21 @@ NukiSmartLockDevice.prototype.update = function (state) {
     // Sets the status of the battery
     device.platform.log(device.nukiId + ' - Updating critical battery: ' + state.batteryCritical);
     if (state.batteryCritical) {
-        device.lockService.updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
+        device.batteryService.updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_LOW);
     } else {
-        device.lockService.updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+        device.batteryService.updateCharacteristic(Characteristic.StatusLowBattery, Characteristic.StatusLowBattery.BATTERY_LEVEL_NORMAL);
+    }
+    if (state.batteryCharging === false) {
+        device.platform.log(device.nukiId + ' - Updating battery charging: NO');
+        device.batteryService.updateCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.NOT_CHARGING);
+    }
+    if (state.batteryCharging === true) {
+        device.platform.log(device.nukiId + ' - Updating battery charging: YES');
+        device.batteryService.updateCharacteristic(Characteristic.ChargingState, Characteristic.ChargingState.CHARGING);
+    }
+    if (state.batteryChargeState && !isNaN(state.batteryChargeState)) {
+        device.platform.log(device.nukiId + ' - Updating battery level: ' + state.batteryChargeState);
+        device.batteryService.updateCharacteristic(Characteristic.BatteryLevel, state.batteryChargeState);
     }
 
     // Sets the door sensor state
