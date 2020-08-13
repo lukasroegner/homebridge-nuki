@@ -78,6 +78,7 @@ Start homebridge with the plugin installed, however, do not provide any devices 
                     "lockFromLockedToLocked": false,
                     "unlatchLock": false,
                     "unlatchLockPreventUnlatchIfLocked": false,
+                    "leaveOpen": false,
                     "defaultLockName": "Lock",
                     "defaultLatchName": "Latch"
                 }
@@ -125,6 +126,8 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 **unlatchLock**: If set to true, a second lock switch is exposed for unlatching the smart lock. (only for SmartLock)
 
 **unlatchLockPreventUnlatchIfLocked**: If set to true, the second lock (**unlatchLock** has to be true) can only operate if the SmartLock is unlocked. (only for SmartLock)
+
+**leaveOpen** (optional): If set to true, the opener don't lock the accessory in HomeKit automatically after it has been set to "unlock". Use this parameter only if you want to set the "lock" state by an automation.  (only for Opener)
 
 **defaultLockName** (optional): Lets you customize the name of the lock mechanism. Useful for the Alexa plugin, which does not detect changes of service names in HomeKit. Defaults to `Lock`. (only for SmartLock)
 

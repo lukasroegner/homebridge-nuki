@@ -11,6 +11,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
     // Sets the nuki ID and platform
     device.nukiId = config.nukiId;
+    device.leaveOpen = config.leaveOpen;
     device.platform = platform;
 
     // Gets all accessories from the platform that match the Nuki ID
@@ -183,9 +184,11 @@ NukiOpenerDevice.prototype.update = function (state) {
 
     // Sets the lock state
     if (state.state == 1 || state.state == 3) {
-        device.platform.log(device.nukiId + ' - Updating lock state: SECURED/SECURED');
-        device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
-        device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+        if (!device.leaveOpen) {
+            device.platform.log(device.nukiId + ' - Updating lock state: SECURED/SECURED');
+            device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+            device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+        }
     }
     if (state.state == 5) {
         device.platform.log(device.nukiId + ' - Updating lock state: UNSECURED/UNSECURED');
