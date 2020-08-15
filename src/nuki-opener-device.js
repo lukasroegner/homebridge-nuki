@@ -129,6 +129,10 @@ function NukiOpenerDevice(platform, apiConfig, config) {
 
         // Checks if the operation is unsecured, as the Opener cannot be secured
         if (value !== Characteristic.LockTargetState.UNSECURED) {
+            setTimeout(function () {
+                device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
+                device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
+            }, 500);
             return callback(null);
         }
 
