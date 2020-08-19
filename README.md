@@ -48,6 +48,8 @@ You have to enable the HTTP API on the Nuki Bridge:
 * After the bridge management interface is loaded, click on the bridge icon and enable the switch for "HTTP API"
 * The IP address, port and API token are shown (you need them for the configuration of the plugin)
 
+**Important**: If you already use other software to communicate with the Nuki Bridge, or you changed the host name or port of this plugin, make sure that there is at least one free slot for the callback registration (which is used to get notifications from the Nuki Bridge). To list all registered callbacks, make an HTTP GET request to `http://<BRIDGE-IP-ADDRESS>:8080/callback/list?token=<BRIDGE-API-TOKEN>`. The Nuki Bridge only allows 3 registered callback adresses. If there is no free slot, remove a registered callback by sending an HTTP GET to `http://<BRIDGE-IP-ADDRESS>:8080/callback/remove?id=<CALLBACK-ID>&token=<BRIDGE-API-TOKEN>`.
+
 ## Find Nuki IDs of the devices
 
 Start homebridge with the plugin installed, however, do not provide any devices in the `devices` array. The plugin will print out all devices with their name, type and corresponding `nukiId`.
