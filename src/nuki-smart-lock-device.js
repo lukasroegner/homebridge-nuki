@@ -26,7 +26,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
         unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(lockAccessory), 1);
     } else {
         platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind LockAccessory.');
-        lockAccessory = new Accessory(apiConfig.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
+        lockAccessory = new Accessory(apiConfig.name || 'Nuki', UUIDGen.generate(config.nukiId + 'LockAccessory'));
         lockAccessory.context.nukiId = config.nukiId;
         lockAccessory.context.kind = 'LockAccessory';
         newDeviceAccessories.push(lockAccessory);
@@ -44,7 +44,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
                 unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(contactSensorAccessory), 1);
             } else {
                 platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind ContactSensorAccessory.');
-                contactSensorAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'ContactSensorAccessory'));
+                contactSensorAccessory = new Accessory((apiConfig.name || 'Nuki') + ' Settings', UUIDGen.generate(config.nukiId + 'ContactSensorAccessory'));
                 contactSensorAccessory.context.nukiId = config.nukiId;
                 contactSensorAccessory.context.kind = 'ContactSensorAccessory';
                 newDeviceAccessories.push(contactSensorAccessory);

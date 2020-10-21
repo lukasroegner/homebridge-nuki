@@ -25,7 +25,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
         unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(lockAccessory), 1);
     } else {
         platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind LockAccessory.');
-        lockAccessory = new Accessory(apiConfig.name, UUIDGen.generate(config.nukiId + 'LockAccessory'));
+        lockAccessory = new Accessory(apiConfig.name || 'Nuki', UUIDGen.generate(config.nukiId + 'LockAccessory'));
         lockAccessory.context.nukiId = config.nukiId;
         lockAccessory.context.kind = 'LockAccessory';
         newDeviceAccessories.push(lockAccessory);
@@ -43,7 +43,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
                 unusedDeviceAccessories.splice(unusedDeviceAccessories.indexOf(switchAccessory), 1);
             } else {
                 platform.log('Adding new accessory with Nuki ID ' + config.nukiId + ' and kind SwitchAccessory.');
-                switchAccessory = new Accessory(apiConfig.name + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
+                switchAccessory = new Accessory((apiConfig.name || 'Nuki') + ' Settings', UUIDGen.generate(config.nukiId + 'SwitchAccessory'));
                 switchAccessory.context.nukiId = config.nukiId;
                 switchAccessory.context.kind = 'SwitchAccessory';
                 newDeviceAccessories.push(switchAccessory);
