@@ -73,7 +73,7 @@ function NukiOpenerDevice(platform, apiConfig, config) {
         accessoryInformationService
             .setCharacteristic(Characteristic.Manufacturer, 'Nuki')
             .setCharacteristic(Characteristic.Model, 'Opener')
-            .setCharacteristic(Characteristic.SerialNumber, config.nukiId);
+            .setCharacteristic(Characteristic.SerialNumber, config.nukiId.toString());
     }
 
     // Updates the lock

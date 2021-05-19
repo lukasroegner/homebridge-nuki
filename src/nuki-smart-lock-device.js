@@ -74,7 +74,7 @@ function NukiSmartLockDevice(platform, apiConfig, config) {
         accessoryInformationService
             .setCharacteristic(Characteristic.Manufacturer, 'Nuki')
             .setCharacteristic(Characteristic.Model, 'SmartLock')
-            .setCharacteristic(Characteristic.SerialNumber, config.nukiId);
+            .setCharacteristic(Characteristic.SerialNumber, config.nukiId.toString());
     }
 
     // Updates the lock
