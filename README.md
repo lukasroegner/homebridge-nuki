@@ -74,6 +74,8 @@ Start homebridge with the plugin installed, however, do not provide any devices 
                     "isRingToOpenEnabled": false,
                     "isContinuousModeEnabled": false,
                     "isDoorbellEnabled": false,
+                    "suppressDoorbellOnRingToOpen": false,
+                    "suppressDoorbellInContinuousMode": false,
                     "isSingleAccessoryModeEnabled": false,
                     "unlatchFromLockedToUnlocked": false,
                     "unlatchFromUnlockedToUnlocked": false,
@@ -116,6 +118,10 @@ Start homebridge with the plugin installed, however, do not provide any devices 
 **isContinuousModeEnabled**: If set to true, a switch is exposed for the continuous mode. (only for Opener)
 
 **isDoorbellEnabled**: If set to true, you get doorbell notifications via the Apple Home app. (only for Opener)
+
+**suppressDoorbellOnRingToOpen**: If set to true, you do not get doorbell notifications via the Apple Home app when ring-to-open is enabled. (only for Opener)
+
+**suppressDoorbellInContinuousMode**: If set to true, you do not get doorbell notifications via the Apple Home app when continuous mode is enabled. (only for Opener)
 
 **isSingleAccessoryModeEnabled**: By default, the ring-to-open and continuous mode switches are placed in a separate accessory (Opener only, works best in the Apple Home app), and the lock and door sensor are also played in a separate accessory (SmartLock only). If this value is set to true, those services are all exposed in a single accessory.
 
