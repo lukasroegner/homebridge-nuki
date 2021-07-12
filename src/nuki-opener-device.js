@@ -9,10 +9,10 @@ function NukiOpenerDevice(platform, apiConfig, config) {
     const device = this;
     const { UUIDGen, Accessory, Characteristic, Service } = platform;
 
-    // Sets the nuki ID and platform
+    // Sets the nuki ID, platform and config
     device.nukiId = config.nukiId;
-    device.leaveOpen = config.leaveOpen;
     device.platform = platform;
+    device.config = config;
 
     // Gets all accessories from the platform that match the Nuki ID
     let unusedDeviceAccessories = platform.accessories.filter(function(a) { return a.context.nukiId === config.nukiId; });
@@ -188,7 +188,7 @@ NukiOpenerDevice.prototype.update = function (state) {
 
     // Sets the lock state
     if (state.state == 1 || state.state == 3) {
-        if (!device.leaveOpen) {
+        if (!device.config.leaveOpen) {
             device.platform.log(device.nukiId + ' - Updating lock state: SECURED/SECURED');
             device.lockService.updateCharacteristic(Characteristic.LockCurrentState, Characteristic.LockCurrentState.SECURED);
             device.lockService.updateCharacteristic(Characteristic.LockTargetState, Characteristic.LockTargetState.SECURED);
@@ -206,8 +206,15 @@ NukiOpenerDevice.prototype.update = function (state) {
 
     // Sets the ring action state
     if (device.doorbellService && state.ringactionState) {
-        device.platform.log(device.nukiId + ' - Updating doorbell: Ring');
-        device.doorbellService.updateCharacteristic(Characteristic.ProgrammableSwitchEvent, 0);
+        if (device.config.suppressDoorbellInContinuousMode && state.mode == 3) {
+            device.platform.log(device.nukiId + ' - Updating doorbell: Ring suppressed in Continuous Mode');
+        } else if (device.config.suppressDoorbellOnRingToOpen && (state.state == 3 || device.ringToOpenSwitchService && device.ringToOpenSwitchService.getCharacteristic(Characteristic.On).value)) {
+            // If the Opener is configured to reset RTO on ringing, it will reset the state to 1 before performing the callback (in this case the current RTO switch value must be retrieved)
+            device.platform.log(device.nukiId + ' - Updating doorbell: Ring suppressed on RTO');
+        } else {
+            device.platform.log(device.nukiId + ' - Updating doorbell: Ring');
+            device.doorbellService.updateCharacteristic(Characteristic.ProgrammableSwitchEvent, 0);
+        }
     }
 
     // Sets the status for the continuous mode
