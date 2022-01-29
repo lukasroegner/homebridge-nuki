@@ -1,6 +1,6 @@
 {
   "name": "homebridge-nuki",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "Plugin for using Nuki devices in homebridge.",
   "license": "MIT",
   "keywords": [

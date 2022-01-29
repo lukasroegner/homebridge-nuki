@@ -1,5 +1,11 @@
 # homebridge-nuki
 
+## ⚠️ Deprecation notice - plugin archived
+
+Due to lack of time, this plugin will no longer be maintained. There are great plugins available for the Nuki ecosystem, such as [homebridge-nukiio](https://github.com/benzman81/homebridge-nukiio) or [homebridge-nb](https://github.com/ebaauw/homebridge-nb), which provide a richer feature set and great support by the authors.
+
+## About
+
 This project is a homebridge plugin for Nuki devices.
 
 The device information is loaded from the local Nuki Bridge, therefore you just have to specify an API token for communication with the Nuki Bridge.
